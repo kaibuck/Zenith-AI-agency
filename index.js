@@ -4,6 +4,7 @@ const bodyParser = require('body-parser');
 const { google } = require('googleapis');
 const twilio = require('twilio');
 const { execSync } = require('child_process');
+const { v4: uuidv4 } = require('uuid');
 
 const app = express();
 app.use(bodyParser.json());
@@ -11,7 +12,12 @@ app.use(bodyParser.urlencoded({ extended: true }));
 
 const PORT = process.env.PORT || 3000;
 
-// Helper function to interact with team-db
+// ─── Database ────────────────────────────────────────────────────────────────
+function esc(str) {
+  if (typeof str !== 'string') return str;
+  return str.replace(/'/g, "''");
+}
+
 function queryTeamDb(sql) {
   try {
     const output = execSync(`team-db "${sql.replace(/"/g, '\\"')}"`).toString();
@@ -22,268 +28,215 @@ function queryTeamDb(sql) {
   }
 }
 
-// Google Calendar Client
+// ─── Clients ─────────────────────────────────────────────────────────────────
 const calendar = google.calendar('v3');
-
-// Twilio Client
 const twilioClient = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
 
-/**
- * 1. Retell Tool Call: Check Availability
- */
-app.post('/retell/check-availability', async (req, res) => {
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+const VoiceResponse = twilio.twiml.VoiceResponse;
+
+async function sendSMS(to, body) {
   try {
-    const { preferredDateTime, appointmentDate, appointmentTime } = req.body;
-    const input = preferredDateTime || `${appointmentDate || ''} ${appointmentTime || ''}`.trim();
-    console.log(`[Retell AI] Checking availability for: ${input}`);
+    await twilioClient.messages.create({ body, from: process.env.TWILIO_PHONE_NUMBER, to });
+  } catch (error) {
+    console.error('SMS error:', error.message);
+  }
+}
 
-    // If no date provided, default to a generic "available" response
-    if (!input) {
-      return res.json({
-        isAvailable: true,
-        message: "Please let me know what date and time you were thinking of.",
-        suggestedSlots: "We are available all next week."
-      });
-    }
-
-    const date = new Date(input);
-    const dayOfWeek = isNaN(date.getTime()) ? 1 : date.getUTCDay(); // Default to Monday if unparseable
-
-    let isAvailable = true;
-    let message = "That time works perfectly.";
-    let suggestedSlots = "";
-
-    // Zenith HVAC is closed on weekends
-    if (dayOfWeek === 0 || dayOfWeek === 6) {
-      isAvailable = false;
-      message = "I am sorry, we are actually closed on weekends.";
-      suggestedSlots = "We have availability this coming Monday, Tuesday, and Wednesday between 9 AM and 5 PM. Which of those days would work better for you?";
-    }
-
-    res.json({
-      isAvailable: isAvailable,
-      message: message,
-      suggestedSlots: suggestedSlots
+async function addCalendarEvent(details) {
+  const calendarScriptUrl = 'https://script.google.com/macros/s/AKfycbzfWBHqm6A9og62Mlskc5yDhxJCUilwq2J6dSVuAz52KHRHQkLxVFWbR0J8Y4w4e_an/exec';
+  try {
+    const axios = require('axios');
+    await axios.post(calendarScriptUrl, {
+      customerName: details.customer_name,
+      customerPhone: details.customer_phone,
+      appointmentDate: details.service_time,
+      serviceAddress: details.customer_address,
+      serviceType: details.service_type || 'HVAC/Plumbing Service'
     });
-  } catch (err) {
-    console.error('Error in retell/check-availability:', err.message);
-    res.status(500).json({ error: 'Internal Server Error' });
+    console.log('[Calendar] Event created for', details.customer_name);
+  } catch (error) {
+    console.error('[Calendar] Error:', error.message);
   }
-});
+}
 
-const axios = require('axios'); // Ensure axios is available or use another fetch method
-
-/**
- * 2. Retell Tool Call: Book Appointment (Live during call)
- */
-app.post('/retell/book-appointment', async (req, res) => {
-  try {
-    const { customerName, customerPhone, appointmentDate, appointmentTime, serviceAddress, serviceType, preferredDateTime } = req.body;
-    const finalDateTime = preferredDateTime || `${appointmentDate || ''} ${appointmentTime || ''}`.trim();
-    const phone = customerPhone || "Customer-Phone-Not-Provided";
-
-    console.log(`[Retell AI] Booking confirmed for ${customerName} at ${finalDateTime}`);
-
-    // 1. Trigger Google Apps Script Calendar Bridge
-    const calendarScriptUrl = 'https://script.google.com/macros/s/AKfycbzfWBHqm6A9og62Mlskc5yDhxJCUilwq2J6dSVuAz52KHRHQkLxVFWbR0J8Y4w4e_an/exec';
-    
-    try {
-      const response = await axios.post(calendarScriptUrl, {
-        customerName,
-        customerPhone: phone,
-        appointmentDate: finalDateTime, // Send the combined string if separate ones aren't clear
-        serviceAddress,
-        serviceType
-      });
-      console.log('[Calendar] Apps Script response:', response.data);
-    } catch (err) {
-      console.error('[Calendar] Failed to trigger Apps Script:', err.message);
-    }
-
-    // 2. Persistent Store (team-db)
-    const eventId = `retell-event-${Date.now()}`;
-    queryTeamDb(`INSERT OR REPLACE INTO appointments (phone, event_id, customer_name, appointment_date, appointment_time, service_address, service_type, reminder_sent, owner_notified) VALUES ('${phone}', '${eventId}', '${customerName}', '${finalDateTime}', '', '${serviceAddress}', '${serviceType}', 0, 0)`);
-
-    // 3. Send SMS to Owner
-    if (process.env.OWNER_PHONE_NUMBER) {
-      try {
-        await twilioClient.messages.create({
-          body: `New Zenith Booking (Live): ${customerName} wants ${serviceType} on ${finalDateTime}. Address: ${serviceAddress}. Phone: ${phone}`,
-          from: process.env.TWILIO_PHONE_NUMBER,
-          to: process.env.OWNER_PHONE_NUMBER
-        });
-        console.log(`[Twilio] Notification sent to owner: ${process.env.OWNER_PHONE_NUMBER}`);
-      } catch (err) {
-        console.error('Failed to send SMS to owner:', err.message);
-      }
-    }
-
-    // 4. Send SMS to Customer
-    if (phone !== "Customer-Phone-Not-Provided") {
-      try {
-        await twilioClient.messages.create({
-          body: `Hi ${customerName}, your ${serviceType} appointment with Zenith is confirmed for ${finalDateTime}. We'll see you at ${serviceAddress}. Reply 'OPT OUT' to cancel.`,
-          from: process.env.TWILIO_PHONE_NUMBER,
-          to: phone
-        });
-        console.log(`[Twilio] Confirmation sent to customer: ${phone}`);
-      } catch (err) {
-        console.error('Failed to send SMS to customer:', err.message);
-      }
-    }
-
-    res.json({
-      status: "success",
-      message: "The appointment has been booked, added to your calendar, and confirmation texts have been sent."
-    });
-  } catch (err) {
-    console.error('Error in retell/book-appointment:', err.message);
-    res.status(500).json({ error: 'Internal Server Error' });
-  }
-});
-
-/**
- * 3. Retell Webhook (End of Call Analysis)
- */
-app.post('/retell/webhook', async (req, res) => {
-  try {
-    const { event_type, call } = req.body;
-    console.log(`[Retell AI] Webhook received: ${event_type}`);
-
-    if (event_type === 'call_analyzed') {
-      const analysis = call.call_analysis.custom_analysis_data;
-      if (!analysis) {
-        console.log('[Retell AI] No custom analysis data found.');
-        return res.sendStatus(204);
-      }
-
-      const customerName = analysis.customerName || 'Valued Customer';
-      const customerPhone = call.from_number; // Call object provides this
-      const serviceType = analysis.serviceType || 'HVAC/Plumbing Service';
-      const appointmentDate = analysis.appointmentDate;
-      const appointmentTime = analysis.appointmentTime;
-      const serviceAddress = analysis.serviceAddress || 'Address not provided';
-
-      if (!appointmentDate || !appointmentTime) {
-        console.log('[Retell AI] Booking details incomplete, skipping automation.');
-        return res.sendStatus(204);
-      }
-
-      console.log(`[Retell AI] Processing booking for ${customerName} at ${appointmentDate} ${appointmentTime}`);
-
-      // 1. Create Google Calendar Event via Apps Script
-      const calendarScriptUrl = 'https://script.google.com/macros/s/AKfycbzfWBHqm6A9og62Mlskc5yDhxJCUilwq2J6dSVuAz52KHRHQkLxVFWbR0J8Y4w4e_an/exec';
-      try {
-        await axios.post(calendarScriptUrl, {
-          customerName,
-          customerPhone,
-          appointmentDate: `${appointmentDate} ${appointmentTime}`,
-          serviceAddress,
-          serviceType
-        });
-        console.log('[Calendar] Booking request sent to Apps Script via Webhook.');
-      } catch (err) {
-        console.error('[Calendar] Failed to trigger Apps Script via Webhook:', err.message);
-      }
-
-      const eventId = `retell-event-${Date.now()}`;
-      
-      // PERSISTENT STORE (team-db)
-      queryTeamDb(`INSERT OR REPLACE INTO appointments (phone, event_id, customer_name, appointment_date, appointment_time, service_address, service_type, reminder_sent, owner_notified) VALUES ('${customerPhone}', '${eventId}', '${customerName}', '${appointmentDate}', '${appointmentTime}', '${serviceAddress}', '${serviceType}', 0, 0)`);
-
-      // 2. Send SMS to Owner
-      if (process.env.OWNER_PHONE_NUMBER) {
-        try {
-          await twilioClient.messages.create({
-            body: `New Zenith (Retell AI) Booking: ${customerName} wants ${serviceType} on ${appointmentDate} at ${appointmentTime}. Address: ${serviceAddress}. Phone: ${customerPhone}`,
-            from: process.env.TWILIO_PHONE_NUMBER,
-            to: process.env.OWNER_PHONE_NUMBER
-          });
-          console.log(`[Twilio] Notification sent to owner: ${process.env.OWNER_PHONE_NUMBER}`);
-        } catch (err) {
-          console.error('Failed to send SMS to owner:', err.message);
-        }
-      }
-
-      // 3. Send SMS to Customer
-      try {
-        await twilioClient.messages.create({
-          body: `Hi ${customerName}, your ${serviceType} appointment with Zenith is confirmed for ${appointmentDate} at ${appointmentTime}. We'll see you at ${serviceAddress}. Reply 'OPT OUT' to cancel.`,
-          from: process.env.TWILIO_PHONE_NUMBER,
-          to: customerPhone
-        });
-        console.log(`[Twilio] Confirmation sent to customer: ${customerPhone}`);
-      } catch (err) {
-        console.error('Failed to send SMS to customer:', err.message);
-      }
-    }
-
-    res.sendStatus(204); // Retell expects 2xx and no body
-  } catch (err) {
-    console.error('Error in retell/webhook:', err.message);
-    res.status(500).send('Internal Server Error');
-  }
-});
-
-/**
- * Helper to delete event from Google Calendar via Apps Script bridge
- */
 async function deleteCalendarEvent(booking) {
   const calendarScriptUrl = 'https://script.google.com/macros/s/AKfycbzfWBHqm6A9og62Mlskc5yDhxJCUilwq2J6dSVuAz52KHRHQkLxVFWbR0J8Y4w4e_an/exec';
   try {
-    console.log(`[Calendar] Attempting to delete event for ${booking.customer_name} on ${booking.appointment_date}`);
+    const axios = require('axios');
     await axios.post(calendarScriptUrl, {
       action: 'delete',
       customerName: booking.customer_name,
       customerPhone: booking.phone,
       appointmentDate: booking.appointment_date
     });
-    console.log('[Calendar] Deletion request sent to Apps Script.');
+    console.log('[Calendar] Deletion sent');
   } catch (err) {
-    console.error('[Calendar] Failed to trigger deletion in Apps Script:', err.message);
+    console.error('[Calendar] Delete error:', err.message);
   }
 }
 
-/**
- * 3. Twilio SMS Webhook (Inbound)
- * Handles customer 'OPT OUT' cancellations.
- */
+// ============================================================================
+//  CALL FLOW: Twilio Voice Webhook (Speech-to-Text)
+// ============================================================================
+
+// Step 1: Ask for name
+app.post('/voice', (req, res) => {
+  const twiml = new VoiceResponse();
+  const gather = twiml.gather({ input: 'speech', action: '/voice/name', timeout: 3, language: 'en-US' });
+  gather.say('Thank you for calling Zenith HVAC and Plumbing. To help us schedule your service, please state your full name after the beep.');
+  twiml.say("We didn't catch that. Please try calling again later.");
+  res.type('text/xml');
+  res.send(twiml.toString());
+});
+
+// Step 2: Ask for address
+app.post('/voice/name', (req, res) => {
+  const twiml = new VoiceResponse();
+  const name = req.body.SpeechResult;
+  if (name) {
+    const gather = twiml.gather({ input: 'speech', action: `/voice/address?name=${encodeURIComponent(name)}`, timeout: 3, language: 'en-US' });
+    gather.say(`Thank you, ${name}. Now, please tell us the address where you need service.`);
+  } else {
+    twiml.redirect('/voice');
+  }
+  res.type('text/xml');
+  res.send(twiml.toString());
+});
+
+// Step 3: Ask for time
+app.post('/voice/address', (req, res) => {
+  const twiml = new VoiceResponse();
+  const name = req.query.name;
+  const address = req.body.SpeechResult;
+  if (address) {
+    const gather = twiml.gather({ input: 'speech', action: `/voice/time?name=${encodeURIComponent(name)}&address=${encodeURIComponent(address)}`, timeout: 3, language: 'en-US' });
+    gather.say('Got it. What is your preferred date and time for the appointment?');
+  } else {
+    twiml.say("I'm sorry, I didn't get the address.");
+    twiml.redirect(`/voice/name?SpeechResult=${encodeURIComponent(name)}`);
+  }
+  res.type('text/xml');
+  res.send(twiml.toString());
+});
+
+// Step 4: Book it
+app.post('/voice/time', async (req, res) => {
+  const twiml = new VoiceResponse();
+  const name = req.query.name;
+  const address = req.query.address;
+  const time = req.body.SpeechResult;
+  const phone = req.body.From;
+
+  if (time) {
+    const customerName = esc(name);
+    const customerPhone = esc(phone);
+    const customerAddress = esc(address);
+    const serviceTime = esc(time);
+    const eventId = uuidv4();
+
+    // 1. Save to team-db (appointments table, used by reminders & opt-out)
+    queryTeamDb(`INSERT INTO appointments (phone, event_id, customer_name, appointment_date, appointment_time, service_address, service_type, reminder_sent, owner_notified) VALUES ('${customerPhone}', '${eventId}', '${customerName}', '', '${serviceTime}', '${customerAddress}', 'HVAC/Plumbing Service', 0, 0)`);
+
+    // 2. Save to bookings table too for backward compat
+    queryTeamDb(`INSERT OR IGNORE INTO bookings (id, customer_name, customer_phone, customer_address, service_time, status) VALUES ('${eventId}', '${customerName}', '${customerPhone}', '${customerAddress}', '${serviceTime}', 'booked')`);
+
+    // 3. SMS to Owner
+    const ownerMsg = `New lead! Name: ${name}, Phone: ${phone}, Address: ${address}, Time: ${time}`;
+    await sendSMS(process.env.OWNER_PHONE_NUMBER, ownerMsg);
+
+    // 4. SMS to Customer
+    const customerMsg = `Hi ${name}, your appointment with Zenith HVAC & Plumbing is confirmed for ${time}. We'll see you at ${address}. Reply OPT OUT to cancel.`;
+    await sendSMS(phone, customerMsg);
+
+    // 5. Google Calendar via Apps Script
+    await addCalendarEvent({ customer_name: name, customer_phone: phone, customer_address: address, service_time: time });
+
+    twiml.say('Thank you! Your appointment has been booked. You will receive a confirmation text. Have a great day!');
+    twiml.hangup();
+  } else {
+    twiml.say("I'm sorry, I didn't get the time.");
+    twiml.redirect(`/voice/address?name=${encodeURIComponent(name)}&SpeechResult=${encodeURIComponent(address)}`);
+  }
+
+  res.type('text/xml');
+  res.send(twiml.toString());
+});
+
+// ============================================================================
+//  RETELL AI ENDPOINTS (kept for future AI agent integration)
+// ============================================================================
+
+const axios = require('axios');
+
+app.post('/retell/check-availability', async (req, res) => {
+  try {
+    const { preferredDateTime, appointmentDate, appointmentTime } = req.body;
+    const input = preferredDateTime || `${appointmentDate || ''} ${appointmentTime || ''}`.trim();
+    console.log(`[Retell AI] Checking availability for: ${input}`);
+
+    if (!input) {
+      return res.json({ isAvailable: true, message: "Please let me know what date and time you were thinking of.", suggestedSlots: "We are available all next week." });
+    }
+
+    const date = new Date(input);
+    const dayOfWeek = isNaN(date.getTime()) ? 1 : date.getUTCDay();
+    let isAvailable = true, message = "That time works perfectly.", suggestedSlots = "";
+
+    if (dayOfWeek === 0 || dayOfWeek === 6) {
+      isAvailable = false;
+      message = "I am sorry, we are actually closed on weekends.";
+      suggestedSlots = "We have availability this coming Monday, Tuesday, and Wednesday between 9 AM and 5 PM.";
+    }
+
+    res.json({ isAvailable, message, suggestedSlots });
+  } catch (err) {
+    console.error('Error in retell/check-availability:', err.message);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+app.post('/retell/book-appointment', async (req, res) => {
+  try {
+    const { customerName, customerPhone, appointmentDate, appointmentTime, serviceAddress, serviceType } = req.body;
+    const finalDateTime = `${appointmentDate || ''} ${appointmentTime || ''}`.trim();
+    const phone = customerPhone || "N/A";
+
+    await addCalendarEvent({ customer_name: customerName, customer_phone: phone, customer_address: serviceAddress, service_time: finalDateTime, service_type: serviceType || 'HVAC/Plumbing Service' });
+
+    const eventId = `retell-${Date.now()}`;
+    queryTeamDb(`INSERT OR REPLACE INTO appointments (phone, event_id, customer_name, appointment_date, appointment_time, service_address, service_type, reminder_sent, owner_notified) VALUES ('${esc(phone)}', '${eventId}', '${esc(customerName)}', '${esc(appointmentDate || '')}', '${esc(appointmentTime || '')}', '${esc(serviceAddress || '')}', '${esc(serviceType || 'HVAC/Plumbing Service')}', 0, 0)`);
+
+    await sendSMS(process.env.OWNER_PHONE_NUMBER, `New Zenith Booking: ${customerName} wants ${serviceType || 'service'} on ${finalDateTime}. Address: ${serviceAddress}. Phone: ${phone}`);
+    await sendSMS(phone, `Hi ${customerName}, your ${serviceType || 'service'} appointment with Zenith is confirmed for ${finalDateTime}. We'll see you at ${serviceAddress}. Reply OPT OUT to cancel.`);
+
+    res.json({ status: "success", message: "Appointment booked." });
+  } catch (err) {
+    console.error('Error in retell/book-appointment:', err.message);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+// ============================================================================
+//  SMS WEBHOOK (Opt-Out / Cancellation)
+// ============================================================================
+
 app.post('/twilio/sms', async (req, res) => {
   try {
     const { Body, From } = req.body;
-    console.log(`[Twilio] Inbound SMS from ${From}: ${Body}`);
+    console.log(`[Twilio SMS] From ${From}: ${Body}`);
 
     if (Body.trim().toUpperCase() === 'OPT OUT') {
-      const results = queryTeamDb(`SELECT * FROM appointments WHERE phone = '${From}'`);
+      const results = queryTeamDb(`SELECT * FROM appointments WHERE phone = '${esc(From)}'`);
       const booking = results && results.length > 0 ? results[0] : null;
 
       if (booking) {
-        console.log(`[Twilio] Opt-out received. Cancelling appointment for ${From}`);
-        
-        // 1. Delete from Calendar
         await deleteCalendarEvent(booking);
-
-        // 2. Notify Owner
-        if (process.env.OWNER_PHONE_NUMBER) {
-          try {
-            await twilioClient.messages.create({
-              body: `Zenith Notification: Appointment for ${booking.customer_name} on ${booking.appointment_date} has been CANCELED by the customer.`,
-              from: process.env.TWILIO_PHONE_NUMBER,
-              to: process.env.OWNER_PHONE_NUMBER
-            });
-            console.log(`[Twilio] Cancellation alert sent to owner.`);
-          } catch (err) {
-            console.error('Failed to notify owner of cancellation:', err.message);
-          }
-        }
-
-        // Clean up store
-        queryTeamDb(`DELETE FROM appointments WHERE phone = '${From}'`);
-        
-        res.send('<Response><Sms>Your Zenith appointment has been canceled successfully. We hope to serve you another time.</Sms></Response>');
+        await sendSMS(process.env.OWNER_PHONE_NUMBER, `Zenith: Appointment for ${booking.customer_name} on ${booking.appointment_date || booking.appointment_time} has been CANCELED by the customer.`);
+        queryTeamDb(`DELETE FROM appointments WHERE phone = '${esc(From)}'`);
+        res.send('<Response><Sms>Your Zenith appointment has been canceled. We hope to serve you another time.</Sms></Response>');
       } else {
-        console.log(`[Twilio] No active booking found for ${From}`);
-        res.send('<Response><Sms>We couldn\'t find an active appointment for this number. If you need assistance, please call us back.</Sms></Response>');
+        res.send("<Response><Sms>We couldn't find an active appointment for this number.</Sms></Response>");
       }
     } else {
       res.sendStatus(200);
@@ -294,108 +247,57 @@ app.post('/twilio/sms', async (req, res) => {
   }
 });
 
-/**
- * 4. Periodic Reminder System
- * Checks for appointments starting in roughly 3 hours.
- */
+// ============================================================================
+//  REMINDERS & DAILY SUMMARY
+// ============================================================================
+
 async function checkReminders() {
-  const twoHoursInMs = 2 * 60 * 60 * 1000;
-  const threeHoursInMs = 3 * 60 * 60 * 1000;
-  const fifteenMinsInMs = 15 * 60 * 1000;
+  const twoHoursMs = 2 * 60 * 60 * 1000;
+  const threeHoursMs = 3 * 60 * 60 * 1000;
+  const fifteenMinsMs = 15 * 60 * 1000;
 
   try {
-    console.log('[Reminders] Checking for upcoming appointments...');
     const now = new Date();
-
-    // Fetch all pending appointments where reminder hasn't been sent
     const appointments = queryTeamDb(`SELECT * FROM appointments WHERE reminder_sent = 0`);
     if (!appointments || appointments.length === 0) return;
 
     for (const appt of appointments) {
       try {
-        // Attempt to parse appointment_date (YYYY-MM-DD) and appointment_time (e.g. "2 PM")
         let apptDateStr = `${appt.appointment_date} ${appt.appointment_time}`.trim();
-        // Assume America/New_York if no timezone specified
-        if (!apptDateStr.includes('GMT') && !apptDateStr.includes('Z')) {
-           apptDateStr += ' GMT-0400'; // Eastern Daylight Time (approx)
-        }
+        if (!apptDateStr.includes('GMT') && !apptDateStr.includes('Z')) apptDateStr += ' GMT-0400';
         const apptDate = new Date(apptDateStr);
-
-        if (isNaN(apptDate.getTime())) {
-           console.log(`[Reminders] Skipping appointment for ${appt.phone} - unparseable date: ${apptDateStr}`);
-           continue;
-        }
+        if (isNaN(apptDate.getTime())) continue;
 
         const timeDiff = apptDate.getTime() - now.getTime();
-
-        // Send reminder if appointment is between 2 and 4 hours away (roughly 3 hours)
-        if (timeDiff > 0 && timeDiff <= (threeHoursInMs + fifteenMinsInMs) && timeDiff >= twoHoursInMs) {
-           console.log(`[Reminders] Sending 3-hour reminder to ${appt.phone}`);
-
-           await twilioClient.messages.create({
-             body: `Reminder: Your Zenith ${appt.service_type} appointment is in 3 hours at ${appt.appointment_time}. See you soon!`,
-             from: process.env.TWILIO_PHONE_NUMBER,
-             to: appt.phone
-           });
-
-           queryTeamDb(`UPDATE appointments SET reminder_sent = 1 WHERE phone = '${appt.phone}'`);
+        if (timeDiff > 0 && timeDiff <= (threeHoursMs + fifteenMinsMs) && timeDiff >= twoHoursMs) {
+          await sendSMS(appt.phone, `Reminder: Your Zenith ${appt.service_type || 'service'} appointment is in 3 hours at ${appt.appointment_time}. See you soon!`);
+          queryTeamDb(`UPDATE appointments SET reminder_sent = 1 WHERE phone = '${esc(appt.phone)}'`);
         }
-      } catch (err) {
-        console.error(`[Reminders] Failed to process reminder for ${appt.phone}:`, err.message);
-      }
+      } catch (e) { console.error(`Reminder error for ${appt.phone}:`, e.message); }
     }
-  } catch (err) {
-    console.error('[Reminders] Error in reminder cycle:', err.message);
-  }
+  } catch (err) { console.error('[Reminders] Error:', err.message); }
 }
 
-/**
- * 5. Owner Daily Summary (7 AM)
- */
 async function checkOwnerNotifications() {
   try {
     const options = { timeZone: 'America/New_York', year: 'numeric', month: '2-digit', day: '2-digit' };
-    const todayStr = new Date().toLocaleDateString('en-CA', options); // Format: YYYY-MM-DD
+    const todayStr = new Date().toLocaleDateString('en-CA', options);
     const currentHour = parseInt(new Date().toLocaleTimeString('en-US', { timeZone: 'America/New_York', hour: 'numeric', hour12: false }));
-
-    // Only send summary during the 7 AM hour
     if (currentHour !== 7) return;
 
-    // Check if summary already sent today
     const state = queryTeamDb(`SELECT value FROM system_state WHERE key = 'last_daily_summary_date'`);
-    if (state && state.length > 0 && state[0].value === todayStr) {
-      return; // Already sent
-    }
+    if (state && state.length > 0 && state[0].value === todayStr) return;
 
-    console.log(`[Owner Summary] Generating 7 AM daily summary for ${todayStr}...`);
-    
-    // Fetch all appointments for today
     const appointments = queryTeamDb(`SELECT * FROM appointments WHERE appointment_date LIKE '${todayStr}%'`);
-    
     if (appointments && appointments.length > 0) {
       let summary = `Zenith Daily Schedule (${todayStr}):\n`;
-      appointments.forEach((appt, index) => {
-        summary += `${index + 1}. ${appt.customer_name} - ${appt.appointment_time || 'No Time'} - ${appt.service_type} - ${appt.service_address}\n`;
+      appointments.forEach((appt, i) => {
+        summary += `${i + 1}. ${appt.customer_name} - ${appt.appointment_time || 'No Time'} - ${appt.service_type} - ${appt.service_address}\n`;
       });
-
-      if (process.env.OWNER_PHONE_NUMBER) {
-        await twilioClient.messages.create({
-          body: summary,
-          from: process.env.TWILIO_PHONE_NUMBER,
-          to: process.env.OWNER_PHONE_NUMBER
-        });
-        console.log('[Owner Summary] Daily summary sent to owner.');
-      }
-    } else {
-      console.log('[Owner Summary] No appointments scheduled for today.');
+      await sendSMS(process.env.OWNER_PHONE_NUMBER, summary);
     }
-
-    // Mark as sent
     queryTeamDb(`INSERT OR REPLACE INTO system_state (key, value) VALUES ('last_daily_summary_date', '${todayStr}')`);
-
-  } catch (err) {
-    console.error('[Owner Summary] Error in owner summary cycle:', err.message);
-  }
+  } catch (err) { console.error('[Daily Summary] Error:', err.message); }
 }
 
 // Run checks every 15 minutes
@@ -404,11 +306,14 @@ setInterval(async () => {
   await checkOwnerNotifications();
 }, 15 * 60 * 1000);
 
-// Root route for health check
+// ============================================================================
+//  HEALTH CHECK
+// ============================================================================
+
 app.get('/', (req, res) => {
-  res.send('Zenith AI Agency - HVAC Dispatcher Backend - ACTIVE');
+  res.send('<h1>✅ Zenith HVAC & Plumbing AI Agent is Online</h1>');
 });
 
 app.listen(PORT, '0.0.0.0', () => {
-  console.log(`Zenith Retell AI Backend listening on port ${PORT}`);
+  console.log(`Zenith Agent listening on port ${PORT}`);
 });
