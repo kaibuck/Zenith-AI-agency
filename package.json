@@ -1,24 +1,22 @@
 {
-  "name": "zenith-hvac-backend",
-  "version": "1.0.0",
-  "description": "Backend for Zenith HVAC & Plumbing AI Assistant",
-  "main": "index.js",
+  "name": "zenith-ai-receptionist",
+  "version": "2.0.0",
+  "description": "AI Receptionist System for Local Businesses — SignalWire + OpenAI + Google Calendar",
+  "main": "src/server.js",
   "scripts": {
-    "start": "node index.js"
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js"
   },
   "dependencies": {
+    "axios": "^1.6.8",
+    "better-sqlite3": "^9.4.3",
     "body-parser": "^1.20.2",
+    "connect-sqlite3": "^0.9.13",
     "dotenv": "^16.4.5",
     "express": "^4.19.2",
+    "express-rate-limit": "^7.2.0",
+    "express-session": "^1.18.0",
     "googleapis": "^134.0.0",
-    "twilio": "^5.0.4",
-    "axios": "^1.6.8",
-    "uuid": "^9.0.0"
+    "openai": "^4.47.1"
   }
 }
-/home/engine/.bashrc: line 1: syntax error near unexpected token `('
-/home/engine/.bashrc: line 1: `. /etc/profile.d/workload-containment.shn# ~/.bashrc: executed by bash(1) for non-login shells.'
-/home/engine/.bashrc: line 1: syntax error near unexpected token `('
-/home/engine/.bashrc: line 1: `. /etc/profile.d/workload-containment.shn# ~/.bashrc: executed by bash(1) for non-login shells.'
-/home/engine/.bashrc: line 1: syntax error near unexpected token `('
-/home/engine/.bashrc: line 1: `. /etc/profile.d/workload-containment.shn# ~/.bashrc: executed by bash(1) for non-login shells.'

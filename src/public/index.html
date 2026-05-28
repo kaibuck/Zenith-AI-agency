@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI Receptionist — Admin Dashboard</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <!-- Login Screen -->
+  <div id="login-screen" class="login-screen hidden">
+    <div class="login-card">
+      <div class="login-logo">
+        <svg width="40" height="40" viewBox="0 0 40 40" fill="none">
+          <rect width="40" height="40" rx="10" fill="#6366f1"/>
+          <path d="M12 28V14l8-4 8 4v14l-8 4-8-4z" stroke="white" stroke-width="2" stroke-linejoin="round" fill="none"/>
+          <circle cx="20" cy="20" r="3" fill="white"/>
+        </svg>
+        <h1>AI Receptionist</h1>
+      </div>
+      <p class="login-subtitle">Admin Dashboard</p>
+      <form id="login-form">
+        <div class="field">
+          <label>Password</label>
+          <input type="password" id="password-input" placeholder="Enter admin password" required />
+        </div>
+        <button type="submit" class="btn btn-primary btn-full">Sign In</button>
+        <p id="login-error" class="error-msg hidden">Incorrect password. Try again.</p>
+      </form>
+    </div>
+  </div>
+
+  <!-- Main App -->
+  <div id="app" class="app hidden">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <svg width="28" height="28" viewBox="0 0 40 40" fill="none">
+          <rect width="40" height="40" rx="8" fill="#6366f1"/>
+          <path d="M12 28V14l8-4 8 4v14l-8 4-8-4z" stroke="white" stroke-width="2" stroke-linejoin="round" fill="none"/>
+          <circle cx="20" cy="20" r="3" fill="white"/>
+        </svg>
+        <div>
+          <div class="sidebar-title">AI Receptionist</div>
+          <div id="business-name-sidebar" class="sidebar-subtitle">Loading…</div>
+        </div>
+      </div>
+
+      <nav class="sidebar-nav">
+        <a href="#" class="nav-item active" data-section="dashboard">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+          Dashboard
+        </a>
+        <a href="#" class="nav-item" data-section="leads">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          Leads
+        </a>
+        <a href="#" class="nav-item" data-section="settings">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93A10 10 0 1 0 4.93 19.07 10 10 0 0 0 19.07 4.93z"/></svg>
+          Settings
+        </a>
+        <a href="#" class="nav-item" data-section="sms-templates">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          SMS Templates
+        </a>
+      </nav>
+
+      <button id="logout-btn" class="sidebar-logout">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        Log out
+      </button>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+
+      <!-- Dashboard Section -->
+      <section id="section-dashboard" class="section">
+        <div class="section-header">
+          <h2>Dashboard</h2>
+          <span class="section-sub" id="last-updated"></span>
+        </div>
+
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-label">Total Leads</div>
+            <div class="stat-value" id="stat-total">—</div>
+          </div>
+          <div class="stat-card accent-green">
+            <div class="stat-label">Booked Today</div>
+            <div class="stat-value" id="stat-today">—</div>
+          </div>
+          <div class="stat-card accent-yellow">
+            <div class="stat-label">Pending</div>
+            <div class="stat-value" id="stat-pending">—</div>
+          </div>
+          <div class="stat-card accent-purple">
+            <div class="stat-label">Conversion Rate</div>
+            <div class="stat-value" id="stat-rate">—</div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <h3>Recent Activity</h3>
+            <button class="btn btn-sm" onclick="loadStats()">Refresh</button>
+          </div>
+          <table class="table" id="activity-table">
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Phone</th>
+                <th>Service</th>
+                <th>Channel</th>
+                <th>Status</th>
+                <th>Time</th>
+              </tr>
+            </thead>
+            <tbody id="activity-body">
+              <tr><td colspan="6" class="empty-state">Loading…</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- Leads Section -->
+      <section id="section-leads" class="section hidden">
+        <div class="section-header">
+          <h2>Leads</h2>
+          <div class="filter-row">
+            <select id="leads-status-filter" onchange="loadLeads()">
+              <option value="">All statuses</option>
+              <option value="new">New</option>
+              <option value="booked">Booked</option>
+              <option value="contacted">Contacted</option>
+              <option value="lost">Lost</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="card">
+          <table class="table" id="leads-table">
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Phone</th>
+                <th>Service</th>
+                <th>Preferred Time</th>
+                <th>Channel</th>
+                <th>Status</th>
+                <th>Created</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="leads-body">
+              <tr><td colspan="8" class="empty-state">Loading…</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- Settings Section -->
+      <section id="section-settings" class="section hidden">
+        <div class="section-header">
+          <h2>Business Settings</h2>
+        </div>
+
+        <div class="settings-grid">
+          <div class="card">
+            <div class="card-header"><h3>Business Info</h3></div>
+            <div class="card-body">
+              <div class="field"><label>Business Name</label><input type="text" id="s-name" /></div>
+              <div class="field"><label>Tagline</label><input type="text" id="s-tagline" /></div>
+              <div class="field"><label>Business Phone (SignalWire number)</label><input type="text" id="s-phone" placeholder="+15551234567" /></div>
+              <div class="field"><label>Owner Phone (for notifications)</label><input type="text" id="s-owner-phone" placeholder="+15559876543" /></div>
+              <div class="field"><label>Owner Email</label><input type="email" id="s-owner-email" /></div>
+              <div class="field"><label>Timezone</label>
+                <select id="s-timezone">
+                  <option value="America/New_York">Eastern (America/New_York)</option>
+                  <option value="America/Chicago">Central (America/Chicago)</option>
+                  <option value="America/Denver">Mountain (America/Denver)</option>
+                  <option value="America/Los_Angeles">Pacific (America/Los_Angeles)</option>
+                  <option value="America/Phoenix">Arizona (America/Phoenix)</option>
+                  <option value="America/Anchorage">Alaska (America/Anchorage)</option>
+                  <option value="Pacific/Honolulu">Hawaii (Pacific/Honolulu)</option>
+                </select>
+              </div>
+              <div class="field"><label>AI Voice</label>
+                <select id="s-voice">
+                  <option value="Polly.Joanna">Joanna (female)</option>
+                  <option value="Polly.Kendra">Kendra (female)</option>
+                  <option value="Polly.Kimberly">Kimberly (female)</option>
+                  <option value="Polly.Salli">Salli (female)</option>
+                  <option value="Polly.Joey">Joey (male)</option>
+                  <option value="Polly.Matthew">Matthew (male)</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header"><h3>Business Hours</h3></div>
+            <div class="card-body" id="hours-editor">Loading…</div>
+          </div>
+
+          <div class="card full-width">
+            <div class="card-header">
+              <h3>Services</h3>
+              <button class="btn btn-sm btn-primary" onclick="addService()">+ Add Service</button>
+            </div>
+            <div class="card-body">
+              <table class="table">
+                <thead><tr><th>Name</th><th>Duration (min)</th><th>Price ($)</th><th></th></tr></thead>
+                <tbody id="services-table-body"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="card full-width">
+            <div class="card-header"><h3>Google Calendar</h3></div>
+            <div class="card-body">
+              <p class="text-muted">Connect Google Calendar to auto-book appointments. Only needs to be done once.</p>
+              <button class="btn btn-outline" onclick="connectCalendar()">Connect Google Calendar</button>
+              <div id="calendar-status" class="mt-1 text-muted"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="save-bar">
+          <button class="btn btn-primary" onclick="saveSettings()">Save Settings</button>
+          <span id="save-status" class="save-status"></span>
+        </div>
+      </section>
+
+      <!-- SMS Templates Section -->
+      <section id="section-sms-templates" class="section hidden">
+        <div class="section-header"><h2>SMS Templates</h2></div>
+        <div class="card">
+          <div class="card-body">
+            <p class="text-muted mb-2">These are the message templates automatically sent by the AI receptionist. Placeholders like <code>{name}</code> are filled in at send time.</p>
+            <div class="field"><label>Appointment Confirmation</label><textarea id="tpl-confirmation" rows="3" readonly></textarea></div>
+            <div class="field"><label>Owner Notification</label><textarea id="tpl-owner" rows="3" readonly></textarea></div>
+            <div class="field"><label>Appointment Reminder (sent day before)</label><textarea id="tpl-reminder" rows="3" readonly></textarea></div>
+            <div class="field"><label>Fallback / Could Not Help</label><textarea id="tpl-fallback" rows="3" readonly></textarea></div>
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- Lead Detail Modal -->
+  <div id="lead-modal" class="modal-overlay hidden">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 id="modal-title">Lead Details</h3>
+        <button class="modal-close" onclick="closeModal()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="lead-meta" id="modal-meta"></div>
+
+        <div class="field mt-2">
+          <label>Status</label>
+          <select id="modal-status">
+            <option value="new">New</option>
+            <option value="booked">Booked</option>
+            <option value="contacted">Contacted</option>
+            <option value="lost">Lost</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label>Notes</label>
+          <textarea id="modal-notes" rows="3" placeholder="Internal notes…"></textarea>
+        </div>
+
+        <div class="conversation-log" id="modal-convo"></div>
+
+        <div class="field mt-2">
+          <label>Send Manual SMS</label>
+          <div class="sms-row">
+            <input type="text" id="modal-sms-input" placeholder="Type message…" />
+            <button class="btn btn-primary" onclick="sendManualSMS()">Send</button>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline" onclick="closeModal()">Cancel</button>
+        <button class="btn btn-danger" onclick="deleteLead()">Delete Lead</button>
+        <button class="btn btn-primary" onclick="saveLead()">Save Changes</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
