@@ -73,7 +73,7 @@ In your [SignalWire dashboard](https://signalwire.com):
 | `SIGNALWIRE_API_TOKEN` | SignalWire API token |
 | `SIGNALWIRE_SPACE` | e.g. `your-space.signalwire.com` |
 | `SIGNALWIRE_PHONE_NUMBER` | Your SignalWire phone number |
-| `OPENAI_API_KEY` | OpenAI API key (GPT-4o) |
+| `ANTHROPIC_API_KEY` | Anthropic API key (Claude) |
 | `ADMIN_PASSWORD` | Password for the admin dashboard |
 | `SESSION_SECRET` | Random 32-char string for session security |
 
@@ -267,4 +267,4 @@ Visit `/admin` (password from `ADMIN_PASSWORD` env var).
 
 **Voice webhook not receiving calls** → Ensure ngrok is running and the URL in SignalWire dashboard matches exactly.
 
-**AI responses look wrong** → Check `OPENAI_API_KEY` is valid and has GPT-4o access.
+**AI responses look wrong** → Check `ANTHROPIC_API_KEY` is valid and has Claude access.

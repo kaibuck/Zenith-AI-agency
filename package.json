@@ -1,13 +1,14 @@
 {
   "name": "zenith-ai-receptionist",
   "version": "2.0.0",
-  "description": "AI Receptionist System for Local Businesses — SignalWire + OpenAI + Google Calendar",
+  "description": "AI Receptionist System for Local Businesses — SignalWire + Claude + Google Calendar",
   "main": "src/server.js",
   "scripts": {
     "start": "node src/server.js",
     "dev": "node --watch src/server.js"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.39.0",
     "axios": "^1.6.8",
     "better-sqlite3": "^9.4.3",
     "body-parser": "^1.20.2",
@@ -16,7 +17,6 @@
     "express": "^4.19.2",
     "express-rate-limit": "^7.2.0",
     "express-session": "^1.18.0",
-    "googleapis": "^134.0.0",
-    "openai": "^4.47.1"
+    "googleapis": "^134.0.0"
   }
 }

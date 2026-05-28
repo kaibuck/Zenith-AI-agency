@@ -1,16 +1,17 @@
-const { OpenAI } = require('openai');
+const Anthropic = require('@anthropic-ai/sdk');
 const business = require('../config/business');
 
-let _openai = null;
-function getOpenAI() {
-  if (!_openai) {
-    _openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY || 'not-set' });
+let _anthropic = null;
+function getClient() {
+  if (!_anthropic) {
+    _anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY || 'not-set' });
   }
-  return _openai;
+  return _anthropic;
 }
 
 /**
  * Builds the system prompt injected into every conversation.
+ * This text is constant per business config and qualifies for prompt caching.
  */
 function buildSystemPrompt() {
   const days = Object.entries(business.hours)
@@ -47,7 +48,7 @@ RULES — follow these strictly:
 7. Never make up service names, prices, or hours not listed above.
 8. Timezone is ${business.timezone} — always interpret times in that zone.
 
-RESPONSE FORMAT (always valid JSON, no markdown, no extra text):
+RESPONSE FORMAT — you MUST respond with valid JSON only. No markdown, no extra text, no code fences. The raw response must be parseable by JSON.parse():
 {
   "message": "<natural language response to say/send>",
   "action": "continue | book | transfer | end | fallback",
@@ -70,27 +71,39 @@ RESPONSE FORMAT (always valid JSON, no markdown, no extra text):
  */
 async function processConversation(messages, leadData = {}, channel = 'voice') {
   const systemPrompt = buildSystemPrompt();
-
-  // Inject current lead data so the model knows what's already collected
   const contextNote = `Already collected: ${JSON.stringify(leadData)}. Channel: ${channel}.`;
 
-  const chatMessages = [
-    { role: 'system', content: systemPrompt },
-    { role: 'system', content: contextNote },
-    ...messages,
-  ];
+  // Convert messages to Anthropic format (roles must alternate user/assistant, starting with user)
+  const anthropicMessages = messages.map(m => ({
+    role: m.role === 'assistant' ? 'assistant' : 'user',
+    content: m.content,
+  }));
 
-  const response = await getOpenAI().chat.completions.create({
-    model: 'gpt-4o',
-    messages: chatMessages,
-    response_format: { type: 'json_object' },
-    temperature: 0.7,
+  // Anthropic requires the first message to be from 'user'
+  // If conversation starts with an assistant greeting, prepend a dummy user turn
+  let finalMessages = anthropicMessages;
+  if (finalMessages.length > 0 && finalMessages[0].role === 'assistant') {
+    finalMessages = [{ role: 'user', content: '[conversation started]' }, ...finalMessages];
+  }
+
+  const response = await getClient().messages.create({
+    model: 'claude-opus-4-8',
     max_tokens: 400,
+    system: [
+      // Large constant block — cache it
+      { type: 'text', text: systemPrompt, cache_control: { type: 'ephemeral' } },
+      { type: 'text', text: contextNote },
+    ],
+    messages: finalMessages,
   });
+
+  const text = response.content[0]?.text || '';
 
   let parsed;
   try {
-    parsed = JSON.parse(response.choices[0].message.content);
+    // Strip any accidental markdown fences before parsing
+    const clean = text.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim();
+    parsed = JSON.parse(clean);
   } catch {
     parsed = {
       message: `Thank you for contacting ${business.name}. Let me connect you with our team.`,
@@ -115,24 +128,21 @@ async function processConversation(messages, leadData = {}, channel = 'voice') {
 }
 
 /**
- * Generates a one-shot greeting for new inbound calls.
+ * Generates a one-shot greeting for new inbound calls/texts.
  */
 async function generateGreeting(channel = 'voice') {
   const prompt = channel === 'voice'
-    ? `A customer just called ${business.name}. Generate a warm, professional greeting. Introduce the business and ask how you can help. Keep it under 2 sentences.`
-    : `A customer just texted ${business.name}. Generate a warm, brief greeting SMS. Introduce the business and ask how you can help.`;
+    ? `A customer just called ${business.name}. Generate a warm, professional greeting. Introduce the business and ask how you can help. Keep it under 2 sentences. Return plain text only — no JSON.`
+    : `A customer just texted ${business.name}. Generate a warm, brief greeting SMS. Introduce the business and ask how you can help. Return plain text only — no JSON.`;
 
-  const response = await getOpenAI().chat.completions.create({
-    model: 'gpt-4o',
-    messages: [
-      { role: 'system', content: `You are the receptionist for ${business.name}.` },
-      { role: 'user', content: prompt },
-    ],
-    temperature: 0.8,
+  const response = await getClient().messages.create({
+    model: 'claude-opus-4-8',
     max_tokens: 100,
+    system: `You are the receptionist for ${business.name}.`,
+    messages: [{ role: 'user', content: prompt }],
   });
 
-  return response.choices[0].message.content.trim();
+  return response.content[0]?.text?.trim() || `Thank you for contacting ${business.name}. How can I help you today?`;
 }
 
 module.exports = { processConversation, generateGreeting };
