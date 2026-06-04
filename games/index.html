@@ -1,0 +1,1092 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SchoolPlay — Games for Students</title>
+<style>
+  :root {
+    --bg: #0f0f1a;
+    --surface: #1a1a2e;
+    --card: #16213e;
+    --border: #2a2a4a;
+    --accent: #6c63ff;
+    --accent2: #ff6584;
+    --accent3: #43e97b;
+    --accent4: #f7971e;
+    --text: #e8e8f0;
+    --muted: #8888aa;
+    --radius: 16px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+  }
+
+  /* ── NAV ── */
+  #nav {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+    background: rgba(15,15,26,0.92);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 12px;
+    padding: 0 24px; height: 56px;
+  }
+  #nav .logo { font-size: 1.25rem; font-weight: 800; color: var(--accent); letter-spacing: -0.5px; cursor: pointer; }
+  #nav .logo span { color: var(--accent2); }
+  #back-btn {
+    display: none; align-items: center; gap: 6px;
+    background: var(--border); border: none; color: var(--text);
+    padding: 6px 14px; border-radius: 8px; cursor: pointer; font-size: .9rem;
+    transition: background .2s;
+  }
+  #back-btn:hover { background: #3a3a5a; }
+
+  /* ── SCREENS ── */
+  .screen { display: none; padding-top: 72px; }
+  .screen.active { display: block; }
+
+  /* ── HOME ── */
+  #home { padding: 72px 24px 40px; }
+  .hero {
+    text-align: center; padding: 48px 20px 40px;
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+    border-radius: var(--radius); border: 1px solid var(--border); margin-bottom: 36px;
+  }
+  .hero h1 { font-size: clamp(2rem, 5vw, 3.2rem); font-weight: 900; letter-spacing: -1px; }
+  .hero h1 span { color: var(--accent); }
+  .hero p { margin-top: 12px; color: var(--muted); font-size: 1.1rem; }
+  .badge { display: inline-block; background: var(--accent); color: #fff; border-radius: 20px; padding: 4px 14px; font-size: .8rem; font-weight: 700; margin-top: 16px; }
+
+  .section-title { font-size: 1.1rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 16px; }
+
+  .games-grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px;
+  }
+  .game-card {
+    background: var(--card); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 24px; cursor: pointer; transition: transform .2s, border-color .2s, box-shadow .2s;
+    position: relative; overflow: hidden;
+  }
+  .game-card::before {
+    content: ''; position: absolute; inset: 0;
+    background: linear-gradient(135deg, var(--clr, #6c63ff22), transparent);
+    pointer-events: none;
+  }
+  .game-card:hover { transform: translateY(-4px); border-color: var(--clr, var(--accent)); box-shadow: 0 8px 32px var(--clr, #6c63ff33); }
+  .game-icon { font-size: 2.4rem; margin-bottom: 12px; }
+  .game-card h3 { font-size: 1.15rem; font-weight: 700; margin-bottom: 6px; }
+  .game-card p { color: var(--muted); font-size: .88rem; line-height: 1.5; }
+  .game-tag {
+    display: inline-block; margin-top: 12px; font-size: .75rem; font-weight: 700;
+    padding: 3px 10px; border-radius: 20px; background: var(--clr, var(--accent)); color: #fff;
+  }
+
+  /* ── GAME SCREEN ── */
+  #game-screen { padding: 72px 24px 40px; }
+  .game-wrapper {
+    max-width: 780px; margin: 0 auto;
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: var(--radius); overflow: hidden;
+  }
+  .game-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 20px 24px; border-bottom: 1px solid var(--border);
+    background: var(--surface);
+  }
+  .game-header h2 { font-size: 1.3rem; font-weight: 800; }
+  .stats { display: flex; gap: 16px; }
+  .stat-pill {
+    background: var(--border); border-radius: 20px; padding: 5px 14px;
+    font-size: .85rem; font-weight: 700;
+  }
+  .stat-pill span { color: var(--accent); }
+  .game-body { padding: 32px 24px; }
+
+  /* ── BUTTONS ── */
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+    padding: 12px 28px; border-radius: 10px; font-size: 1rem; font-weight: 700;
+    border: none; cursor: pointer; transition: all .2s; text-decoration: none;
+  }
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-primary:hover { background: #5a52e0; transform: translateY(-2px); }
+  .btn-danger { background: var(--accent2); color: #fff; }
+  .btn-danger:hover { background: #e04f6e; }
+  .btn-success { background: var(--accent3); color: #0f0f1a; }
+  .btn-success:hover { background: #35cc65; }
+  .btn-outline {
+    background: transparent; color: var(--text); border: 2px solid var(--border);
+  }
+  .btn-outline:hover { border-color: var(--accent); color: var(--accent); }
+  .btn-sm { padding: 8px 18px; font-size: .88rem; }
+
+  /* ── GAME: MATH BLITZ ── */
+  #math-display { text-align: center; }
+  .math-problem { font-size: clamp(2.5rem, 8vw, 5rem); font-weight: 900; margin: 24px 0; color: var(--accent); letter-spacing: -2px; }
+  .math-timer-bar { height: 8px; background: var(--border); border-radius: 4px; overflow: hidden; margin-bottom: 24px; }
+  .math-timer-fill { height: 100%; background: var(--accent3); border-radius: 4px; transition: width .1s linear; }
+  .math-input-row { display: flex; gap: 10px; max-width: 320px; margin: 0 auto; }
+  .game-input {
+    flex: 1; background: var(--surface); border: 2px solid var(--border); color: var(--text);
+    padding: 14px 18px; border-radius: 10px; font-size: 1.2rem; text-align: center; font-weight: 700;
+    transition: border-color .2s; outline: none;
+  }
+  .game-input:focus { border-color: var(--accent); }
+  .feedback { text-align: center; font-size: 1.1rem; font-weight: 700; height: 28px; margin-top: 12px; }
+  .feedback.correct { color: var(--accent3); }
+  .feedback.wrong { color: var(--accent2); }
+
+  /* ── GAME: MEMORY MATCH ── */
+  #memory-grid {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px;
+    max-width: 400px; margin: 0 auto;
+  }
+  .mem-card {
+    aspect-ratio: 1; border-radius: 10px; cursor: pointer;
+    perspective: 600px; position: relative;
+  }
+  .mem-inner {
+    width: 100%; height: 100%; position: relative;
+    transform-style: preserve-3d; transition: transform .4s ease;
+  }
+  .mem-card.flipped .mem-inner { transform: rotateY(180deg); }
+  .mem-card.matched .mem-inner { transform: rotateY(180deg); }
+  .mem-card.matched .mem-front { background: #2a4a2a !important; border-color: var(--accent3) !important; }
+  .mem-front, .mem-back {
+    position: absolute; inset: 0; border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.8rem; backface-visibility: hidden; border: 2px solid var(--border);
+  }
+  .mem-back { background: var(--surface); }
+  .mem-back::after { content: '?'; font-size: 1.5rem; color: var(--muted); font-weight: 900; }
+  .mem-front { background: var(--card); transform: rotateY(180deg); border-color: var(--accent); }
+
+  /* ── GAME: HANGMAN ── */
+  #hangman-display { text-align: center; }
+  .hangman-svg { margin: 0 auto 20px; display: block; }
+  .hangman-word { display: flex; justify-content: center; gap: 10px; flex-wrap: wrap; margin: 16px 0; }
+  .letter-box {
+    width: 38px; height: 48px; border-bottom: 3px solid var(--accent);
+    display: flex; align-items: flex-end; justify-content: center;
+    font-size: 1.6rem; font-weight: 800; padding-bottom: 4px; color: var(--text);
+  }
+  .hangman-keyboard { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; margin-top: 20px; max-width: 480px; margin-left: auto; margin-right: auto; }
+  .key-btn {
+    width: 40px; height: 40px; border-radius: 8px; border: none;
+    background: var(--surface); color: var(--text); font-size: .95rem; font-weight: 700;
+    cursor: pointer; border: 1px solid var(--border); transition: all .15s;
+  }
+  .key-btn:hover:not(:disabled) { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .key-btn:disabled { opacity: .3; cursor: not-allowed; }
+  .key-btn.correct { background: var(--accent3); color: #0f0f1a; border-color: var(--accent3); }
+  .key-btn.wrong { background: #3a1a1a; border-color: var(--accent2); color: var(--accent2); }
+  .hangman-hint { color: var(--muted); font-size: .9rem; margin-bottom: 8px; }
+
+  /* ── GAME: WORD SCRAMBLE ── */
+  #scramble-display { text-align: center; }
+  .scrambled-word { font-size: clamp(2rem, 6vw, 3.5rem); font-weight: 900; letter-spacing: 8px; color: var(--accent); margin: 24px 0; }
+  .scramble-hint { color: var(--muted); font-size: .95rem; margin-bottom: 20px; }
+  .scramble-clue { font-size: 1rem; color: var(--accent4); margin-bottom: 16px; }
+
+  /* ── GAME: TYPING RACE ── */
+  #typing-display { }
+  .typing-passage {
+    font-size: 1.05rem; line-height: 1.8; padding: 20px; border-radius: 10px;
+    background: var(--surface); border: 1px solid var(--border); margin-bottom: 16px;
+    letter-spacing: .3px;
+  }
+  .typing-passage .correct-char { color: var(--accent3); }
+  .typing-passage .wrong-char { color: var(--accent2); background: #3a1a1a; border-radius: 2px; }
+  .typing-passage .current-char { border-left: 2px solid var(--accent); }
+  .typing-textarea {
+    width: 100%; background: var(--surface); border: 2px solid var(--border);
+    color: var(--text); padding: 14px 18px; border-radius: 10px; font-size: 1rem;
+    resize: none; height: 80px; outline: none; transition: border-color .2s;
+  }
+  .typing-textarea:focus { border-color: var(--accent); }
+  .wpm-display { text-align: center; font-size: 2rem; font-weight: 900; color: var(--accent3); }
+  .wpm-display small { display: block; color: var(--muted); font-size: .9rem; font-weight: 400; }
+
+  /* ── GAME: TRIVIA ── */
+  #trivia-display { }
+  .trivia-q { font-size: 1.2rem; font-weight: 700; margin-bottom: 8px; line-height: 1.5; }
+  .trivia-subject { display: inline-block; margin-bottom: 20px; background: var(--accent); color: #fff; border-radius: 20px; padding: 3px 12px; font-size: .8rem; font-weight: 700; }
+  .trivia-options { display: grid; gap: 10px; }
+  .trivia-opt {
+    background: var(--surface); border: 2px solid var(--border); color: var(--text);
+    padding: 14px 20px; border-radius: 10px; cursor: pointer; text-align: left;
+    font-size: 1rem; font-weight: 600; transition: all .2s;
+  }
+  .trivia-opt:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
+  .trivia-opt.correct { background: #1a3a1a; border-color: var(--accent3); color: var(--accent3); }
+  .trivia-opt.wrong { background: #3a1a1a; border-color: var(--accent2); color: var(--accent2); }
+  .trivia-opt:disabled { cursor: not-allowed; }
+  .trivia-progress { color: var(--muted); font-size: .9rem; margin-bottom: 20px; }
+  .trivia-next { margin-top: 20px; }
+
+  /* ── GAME: NUMBER GUESSER ── */
+  #number-display { text-align: center; }
+  .number-range { font-size: 3rem; font-weight: 900; color: var(--accent); margin: 16px 0; }
+  .number-hint { font-size: 1.1rem; margin: 12px 0; min-height: 32px; }
+  .number-hint.hot { color: #ff4444; }
+  .number-hint.warm { color: var(--accent4); }
+  .number-hint.cold { color: #44aaff; }
+  .guesses-left { color: var(--muted); font-size: .9rem; margin-bottom: 16px; }
+  .guess-history { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; margin-top: 16px; }
+  .guess-bubble { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 4px 12px; font-size: .9rem; font-weight: 700; }
+
+  /* ── GAME: SNAKE ── */
+  #snake-display { text-align: center; }
+  #snake-canvas {
+    border: 2px solid var(--border); border-radius: 10px;
+    background: var(--surface); display: block; margin: 0 auto;
+  }
+  .snake-controls { display: flex; flex-direction: column; align-items: center; gap: 6px; margin-top: 16px; }
+  .snake-row { display: flex; gap: 6px; }
+  .snake-btn {
+    width: 52px; height: 52px; border-radius: 10px; border: 1px solid var(--border);
+    background: var(--surface); color: var(--text); font-size: 1.2rem; cursor: pointer;
+    transition: background .15s;
+  }
+  .snake-btn:hover { background: var(--accent); }
+  .snake-speed { margin-top: 10px; color: var(--muted); font-size: .88rem; }
+
+  /* ── RESULT OVERLAY ── */
+  .result-overlay {
+    display: none; position: fixed; inset: 0; z-index: 200;
+    background: rgba(10,10,20,.88); backdrop-filter: blur(8px);
+    align-items: center; justify-content: center;
+  }
+  .result-overlay.show { display: flex; }
+  .result-box {
+    background: var(--card); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 40px; max-width: 420px; width: 90%; text-align: center;
+  }
+  .result-icon { font-size: 4rem; margin-bottom: 12px; }
+  .result-title { font-size: 1.8rem; font-weight: 900; margin-bottom: 8px; }
+  .result-score { font-size: 3rem; font-weight: 900; color: var(--accent); margin: 12px 0; }
+  .result-msg { color: var(--muted); margin-bottom: 24px; }
+  .result-actions { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+
+  /* ── LEADERBOARD ── */
+  .lb-row { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--border); }
+  .lb-rank { width: 28px; font-weight: 900; color: var(--muted); }
+  .lb-name { flex: 1; font-weight: 600; }
+  .lb-score { font-weight: 800; color: var(--accent); }
+
+  /* ── UTIL ── */
+  .text-center { text-align: center; }
+  .mt-16 { margin-top: 16px; }
+  .mt-24 { margin-top: 24px; }
+  .hidden { display: none !important; }
+  .divider { border: none; border-top: 1px solid var(--border); margin: 24px 0; }
+
+  @media (max-width: 520px) {
+    #memory-grid { grid-template-columns: repeat(4, 1fr); gap: 6px; }
+    .mem-front, .mem-back { font-size: 1.3rem; }
+    .hangman-keyboard { gap: 4px; }
+    .key-btn { width: 34px; height: 34px; font-size: .85rem; }
+  }
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav id="nav">
+  <button id="back-btn" onclick="showHome()">← Back</button>
+  <div class="logo" onclick="showHome()">School<span>Play</span></div>
+</nav>
+
+<!-- RESULT OVERLAY -->
+<div class="result-overlay" id="result-overlay">
+  <div class="result-box">
+    <div class="result-icon" id="r-icon">🎉</div>
+    <div class="result-title" id="r-title">Game Over!</div>
+    <div class="result-score" id="r-score">0</div>
+    <div class="result-msg" id="r-msg"></div>
+    <div class="result-actions">
+      <button class="btn btn-primary" id="r-play-again">Play Again</button>
+      <button class="btn btn-outline" onclick="showHome()">Home</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     HOME SCREEN
+═══════════════════════════════════════════ -->
+<div id="home" class="screen active">
+  <div class="hero">
+    <h1>School<span>Play</span></h1>
+    <p>8 games. Infinite fun. Zero boredom.</p>
+    <div class="badge">🎓 Free Forever</div>
+  </div>
+
+  <div class="section-title">Pick a Game</div>
+  <div class="games-grid">
+    <div class="game-card" style="--clr:#6c63ff33" onclick="startGame('math')">
+      <div class="game-icon">➕</div>
+      <h3>Math Blitz</h3>
+      <p>Solve as many math problems as you can in 60 seconds. All difficulty levels.</p>
+      <div class="game-tag" style="background:#6c63ff">Math</div>
+    </div>
+    <div class="game-card" style="--clr:#ff658433" onclick="startGame('memory')">
+      <div class="game-icon">🃏</div>
+      <h3>Memory Match</h3>
+      <p>Flip cards and match pairs of emojis. Train your memory!</p>
+      <div class="game-tag" style="background:#ff6584">Memory</div>
+    </div>
+    <div class="game-card" style="--clr:#43e97b33" onclick="startGame('hangman')">
+      <div class="game-icon">🔤</div>
+      <h3>Hangman</h3>
+      <p>Guess the hidden word one letter at a time before you run out of chances.</p>
+      <div class="game-tag" style="background:#43e97b;color:#0f0f1a">Spelling</div>
+    </div>
+    <div class="game-card" style="--clr:#f7971e33" onclick="startGame('scramble')">
+      <div class="game-icon">🔀</div>
+      <h3>Word Scramble</h3>
+      <p>Unscramble school vocabulary words as fast as you can to earn points.</p>
+      <div class="game-tag" style="background:#f7971e">Vocab</div>
+    </div>
+    <div class="game-card" style="--clr:#38f9d733" onclick="startGame('typing')">
+      <div class="game-icon">⌨️</div>
+      <h3>Typing Race</h3>
+      <p>Type the passage accurately and fast. Beat your WPM record!</p>
+      <div class="game-tag" style="background:#38f9d7;color:#0f0f1a">Typing</div>
+    </div>
+    <div class="game-card" style="--clr:#a18cd133" onclick="startGame('trivia')">
+      <div class="game-icon">🧠</div>
+      <h3>School Trivia</h3>
+      <p>Science, history, math, geography — 15 questions across all subjects!</p>
+      <div class="game-tag" style="background:#a18cd1">Trivia</div>
+    </div>
+    <div class="game-card" style="--clr:#fc466b33" onclick="startGame('number')">
+      <div class="game-icon">🔢</div>
+      <h3>Number Guesser</h3>
+      <p>I'm thinking of a number between 1–100. Can you find it in 7 tries?</p>
+      <div class="game-tag" style="background:#fc466b">Logic</div>
+    </div>
+    <div class="game-card" style="--clr:#56ab2f33" onclick="startGame('snake')">
+      <div class="game-icon">🐍</div>
+      <h3>Snake</h3>
+      <p>The classic! Eat food, grow longer, don't crash. Use arrow keys or buttons.</p>
+      <div class="game-tag" style="background:#56ab2f">Arcade</div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     GAME SCREEN
+═══════════════════════════════════════════ -->
+<div id="game-screen" class="screen">
+  <div class="game-wrapper">
+    <div class="game-header">
+      <h2 id="game-title">Game</h2>
+      <div class="stats" id="game-stats"></div>
+    </div>
+    <div class="game-body" id="game-body"></div>
+  </div>
+</div>
+
+<script>
+// ════════════════════════════════════════════════════════
+//  ROUTER
+// ════════════════════════════════════════════════════════
+let currentGame = null;
+
+function showHome() {
+  stopCurrentGame();
+  document.getElementById('home').classList.add('active');
+  document.getElementById('game-screen').classList.remove('active');
+  document.getElementById('back-btn').style.display = 'none';
+  hideResult();
+}
+
+function startGame(id) {
+  stopCurrentGame();
+  hideResult();
+  document.getElementById('home').classList.remove('active');
+  document.getElementById('game-screen').classList.add('active');
+  document.getElementById('back-btn').style.display = 'flex';
+  currentGame = id;
+  const launchers = { math, memory, hangman, scramble, typing, trivia, number, snake };
+  launchers[id]();
+}
+
+function stopCurrentGame() {
+  if (currentGame === 'math') clearMathTimers();
+  if (currentGame === 'snake') stopSnake();
+  if (currentGame === 'typing') clearTypingTimers();
+  currentGame = null;
+}
+
+function setGameUI(title, statsHTML, bodyHTML) {
+  document.getElementById('game-title').textContent = title;
+  document.getElementById('game-stats').innerHTML = statsHTML;
+  document.getElementById('game-body').innerHTML = bodyHTML;
+}
+
+// ── RESULT ──────────────────────────────────
+function showResult({ icon='🎉', title='Game Over!', score, msg='', replayFn }) {
+  document.getElementById('r-icon').textContent = icon;
+  document.getElementById('r-title').textContent = title;
+  document.getElementById('r-score').textContent = score;
+  document.getElementById('r-msg').textContent = msg;
+  const btn = document.getElementById('r-play-again');
+  btn.onclick = () => { hideResult(); if(replayFn) replayFn(); };
+  document.getElementById('result-overlay').classList.add('show');
+}
+function hideResult() { document.getElementById('result-overlay').classList.remove('show'); }
+
+// ════════════════════════════════════════════════════════
+//  1. MATH BLITZ
+// ════════════════════════════════════════════════════════
+let mathTimer, mathTickInterval;
+function clearMathTimers() { clearInterval(mathTimer); clearInterval(mathTickInterval); }
+
+function math() {
+  let score = 0, streak = 0, timeLeft = 60, totalTime = 60;
+  let a, b, op, ans;
+
+  setGameUI('Math Blitz',
+    `<div class="stat-pill">Score <span id="m-score">0</span></div><div class="stat-pill">⏱ <span id="m-time">60</span>s</div>`,
+    `<div id="math-display">
+      <div class="math-timer-bar"><div class="math-timer-fill" id="m-bar" style="width:100%"></div></div>
+      <div class="math-problem" id="m-problem"></div>
+      <div class="math-input-row">
+        <input id="m-input" class="game-input" type="number" placeholder="?" autocomplete="off">
+        <button class="btn btn-primary" onclick="mathSubmit()">Go</button>
+      </div>
+      <div class="feedback" id="m-feedback"></div>
+      <div style="color:var(--muted);font-size:.85rem;margin-top:12px">Streak: <span id="m-streak">0</span> 🔥</div>
+    </div>`
+  );
+
+  function newProblem() {
+    const ops = ['+','-','×','÷'];
+    const diff = score < 5 ? 0 : score < 15 ? 1 : score < 30 ? 2 : 3;
+    op = ops[Math.floor(Math.random() * (diff < 2 ? 2 : diff < 3 ? 3 : 4))];
+    if (op === '+' || op === '-') {
+      const max = diff === 0 ? 10 : diff === 1 ? 25 : diff === 2 ? 50 : 100;
+      a = Math.floor(Math.random() * max) + 1;
+      b = Math.floor(Math.random() * max) + 1;
+      if (op === '-' && b > a) [a,b] = [b,a];
+      ans = op === '+' ? a+b : a-b;
+    } else if (op === '×') {
+      a = Math.floor(Math.random() * (diff < 3 ? 10 : 15)) + 1;
+      b = Math.floor(Math.random() * (diff < 3 ? 10 : 12)) + 1;
+      ans = a*b;
+    } else {
+      b = Math.floor(Math.random() * 9) + 2;
+      ans = Math.floor(Math.random() * 10) + 1;
+      a = b * ans;
+    }
+    const el = document.getElementById('m-problem');
+    if (el) el.textContent = `${a} ${op} ${b} = ?`;
+    const inp = document.getElementById('m-input');
+    if (inp) { inp.value = ''; inp.focus(); }
+    clearFeedback();
+  }
+
+  function clearFeedback() {
+    const fb = document.getElementById('m-feedback');
+    if (fb) { fb.textContent = ''; fb.className = 'feedback'; }
+  }
+
+  window.mathSubmit = function() {
+    const inp = document.getElementById('m-input');
+    if (!inp) return;
+    const val = parseInt(inp.value, 10);
+    if (isNaN(val)) return;
+    const fb = document.getElementById('m-feedback');
+    if (val === ans) {
+      score++; streak++;
+      if (streak >= 3) score++;
+      if (fb) { fb.textContent = streak >= 3 ? `✓ Correct! +${streak>=3?2:1} (🔥×${streak})` : '✓ Correct!'; fb.className = 'feedback correct'; }
+    } else {
+      streak = 0;
+      if (fb) { fb.textContent = `✗ The answer was ${ans}`; fb.className = 'feedback wrong'; }
+    }
+    const sc = document.getElementById('m-score');
+    if (sc) sc.textContent = score;
+    const st = document.getElementById('m-streak');
+    if (st) st.textContent = streak;
+    setTimeout(newProblem, 600);
+  };
+
+  clearMathTimers();
+  mathTickInterval = setInterval(() => {
+    timeLeft--;
+    const t = document.getElementById('m-time');
+    const bar = document.getElementById('m-bar');
+    if (t) t.textContent = timeLeft;
+    if (bar) bar.style.width = (timeLeft/totalTime*100)+'%';
+    if (timeLeft <= 10 && bar) bar.style.background = 'var(--accent2)';
+    if (timeLeft <= 0) {
+      clearMathTimers();
+      const msg = score >= 30 ? 'Incredible! Math genius!' : score >= 20 ? 'Excellent work!' : score >= 10 ? 'Great effort!' : 'Keep practicing!';
+      showResult({ icon: score >= 20 ? '🏆' : '🧮', title: 'Time\'s Up!', score: `${score} pts`, msg, replayFn: math });
+    }
+  }, 1000);
+
+  const inp = document.getElementById('m-input');
+  if (inp) inp.addEventListener('keydown', e => { if (e.key === 'Enter') mathSubmit(); });
+  newProblem();
+}
+
+// ════════════════════════════════════════════════════════
+//  2. MEMORY MATCH
+// ════════════════════════════════════════════════════════
+function memory() {
+  const emojis = ['🐶','🦊','🐸','🦁','🐧','🦋','🌸','⭐','🍕','🎸','🚀','🌈','🏆','🎯','🎮','🧩'];
+  const deck = [...emojis.slice(0,8),...emojis.slice(0,8)].sort(() => Math.random()-.5);
+  let flipped = [], matched = 0, moves = 0, canFlip = true;
+
+  setGameUI('Memory Match',
+    `<div class="stat-pill">Moves <span id="mem-moves">0</span></div><div class="stat-pill">Pairs <span id="mem-pairs">0</span>/8</div>`,
+    `<div><div id="memory-grid"></div></div>`
+  );
+
+  function render() {
+    const grid = document.getElementById('memory-grid');
+    if (!grid) return;
+    grid.innerHTML = '';
+    deck.forEach((emoji, i) => {
+      const card = document.createElement('div');
+      card.className = 'mem-card' + (flipped.includes(i)||window._memMatched?.has(i) ? ' flipped' : '') + (window._memMatched?.has(i) ? ' matched' : '');
+      card.innerHTML = `<div class="mem-inner"><div class="mem-front">${emoji}</div><div class="mem-back"></div></div>`;
+      card.onclick = () => flipCard(i);
+      grid.appendChild(card);
+    });
+  }
+
+  window._memMatched = new Set();
+
+  function flipCard(i) {
+    if (!canFlip || flipped.includes(i) || window._memMatched.has(i)) return;
+    if (flipped.length === 2) return;
+    flipped.push(i);
+    render();
+    if (flipped.length === 2) {
+      moves++;
+      const m = document.getElementById('mem-moves');
+      if (m) m.textContent = moves;
+      canFlip = false;
+      setTimeout(() => {
+        if (deck[flipped[0]] === deck[flipped[1]]) {
+          window._memMatched.add(flipped[0]); window._memMatched.add(flipped[1]);
+          matched++;
+          const p = document.getElementById('mem-pairs');
+          if (p) p.textContent = matched;
+          flipped = [];
+          render();
+          if (matched === 8) {
+            const pts = Math.max(200 - moves*5, 50);
+            showResult({ icon:'🃏', title:'All Matched!', score:`${pts} pts`, msg:`Finished in ${moves} moves!`, replayFn: memory });
+          }
+        } else {
+          flipped = [];
+          render();
+        }
+        canFlip = true;
+      }, 900);
+    }
+  }
+  render();
+}
+
+// ════════════════════════════════════════════════════════
+//  3. HANGMAN
+// ════════════════════════════════════════════════════════
+const hangmanWords = [
+  { word:'ALGEBRA',    hint:'Branch of mathematics' },
+  { word:'PHOTOSYNTHESIS', hint:'How plants make food' },
+  { word:'DEMOCRACY',  hint:'A type of government' },
+  { word:'CONTINENT',  hint:'Large landmass' },
+  { word:'FRACTION',   hint:'Part of a whole number' },
+  { word:'EQUATION',   hint:'Mathematical statement' },
+  { word:'VOLCANO',    hint:'Mountain that erupts' },
+  { word:'MOLECULE',   hint:'Tiny chemical unit' },
+  { word:'SYNONYM',    hint:'Word with same meaning' },
+  { word:'PARAGRAPH',  hint:'Group of sentences' },
+  { word:'CIRCUMFERENCE', hint:'Distance around a circle' },
+  { word:'EVOLUTION',  hint:'Darwin\'s theory' },
+  { word:'ADJECTIVE',  hint:'Describes a noun' },
+  { word:'HYPOTHESIS', hint:'Scientific guess' },
+  { word:'RENAISSANCE', hint:'Historical cultural rebirth' },
+  { word:'CHROMOSOME', hint:'Carries genetic info' },
+  { word:'LATITUDE',   hint:'Horizontal map lines' },
+  { word:'DEMOCRACY',  hint:'Government by the people' },
+  { word:'METAPHOR',   hint:'Figure of speech' },
+  { word:'CALCULUS',   hint:'Advanced mathematics' },
+];
+
+function hangman() {
+  const pick = hangmanWords[Math.floor(Math.random()*hangmanWords.length)];
+  const word = pick.word;
+  const hint = pick.hint;
+  let wrong = 0, guessed = new Set();
+  const maxWrong = 7;
+
+  function bodyHTML() {
+    const display = word.split('').map(c => guessed.has(c) ? c : '_').join('');
+    const won = !display.includes('_');
+    const lost = wrong >= maxWrong;
+
+    return `<div id="hangman-display">
+      ${svgHangman(wrong)}
+      <div class="hangman-hint">Hint: ${hint}</div>
+      <div class="hangman-word">${word.split('').map(c=>`<div class="letter-box">${guessed.has(c)?c:''}</div>`).join('')}</div>
+      <div style="color:var(--muted);font-size:.9rem;margin:8px 0">Wrong: ${wrong}/${maxWrong}</div>
+      <div class="hangman-keyboard">
+        ${'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('').map(l => {
+          const used = guessed.has(l);
+          const cls = used ? (word.includes(l) ? 'correct' : 'wrong') : '';
+          return `<button class="key-btn ${cls}" ${used||won||lost?'disabled':''} onclick="hangmanGuess('${l}')">${l}</button>`;
+        }).join('')}
+      </div>
+    </div>`;
+  }
+
+  setGameUI('Hangman',
+    `<div class="stat-pill">Tries <span id="h-wrong">${wrong}</span>/${maxWrong}</div>`,
+    bodyHTML()
+  );
+
+  window.hangmanGuess = function(l) {
+    guessed.add(l);
+    if (!word.includes(l)) wrong++;
+    document.getElementById('game-stats').innerHTML = `<div class="stat-pill">Tries <span id="h-wrong">${wrong}</span>/${maxWrong}</div>`;
+    document.getElementById('game-body').innerHTML = bodyHTML();
+    const display = word.split('').map(c => guessed.has(c) ? c : '_').join('');
+    if (!display.includes('_')) {
+      setTimeout(() => showResult({ icon:'✅', title:'You Won!', score:`${Math.max(100-wrong*10,10)} pts`, msg:`The word was: ${word}`, replayFn: hangman }), 300);
+    } else if (wrong >= maxWrong) {
+      setTimeout(() => showResult({ icon:'💀', title:'Game Over', score:'0 pts', msg:`The word was: ${word}`, replayFn: hangman }), 300);
+    }
+  };
+}
+
+function svgHangman(wrong) {
+  const parts = [
+    `<line x1="110" y1="20" x2="110" y2="60" stroke="#ff6584" stroke-width="3" stroke-linecap="round"/>`, // head circle
+    `<circle cx="110" cy="75" r="16" fill="none" stroke="#ff6584" stroke-width="3"/>`,
+    `<line x1="110" y1="91" x2="110" y2="135" stroke="#ff6584" stroke-width="3" stroke-linecap="round"/>`,
+    `<line x1="110" y1="100" x2="85" y2="120" stroke="#ff6584" stroke-width="3" stroke-linecap="round"/>`,
+    `<line x1="110" y1="100" x2="135" y2="120" stroke="#ff6584" stroke-width="3" stroke-linecap="round"/>`,
+    `<line x1="110" y1="135" x2="88" y2="160" stroke="#ff6584" stroke-width="3" stroke-linecap="round"/>`,
+    `<line x1="110" y1="135" x2="132" y2="160" stroke="#ff6584" stroke-width="3" stroke-linecap="round"/>`,
+  ];
+  return `<svg class="hangman-svg" width="180" height="185" viewBox="0 0 180 185">
+    <line x1="20" y1="175" x2="160" y2="175" stroke="#555" stroke-width="3" stroke-linecap="round"/>
+    <line x1="50" y1="175" x2="50" y2="15" stroke="#555" stroke-width="3" stroke-linecap="round"/>
+    <line x1="50" y1="15" x2="110" y2="15" stroke="#555" stroke-width="3" stroke-linecap="round"/>
+    <line x1="110" y1="15" x2="110" y2="20" stroke="#555" stroke-width="3" stroke-linecap="round"/>
+    ${parts.slice(0,wrong).join('')}
+  </svg>`;
+}
+
+// ════════════════════════════════════════════════════════
+//  4. WORD SCRAMBLE
+// ════════════════════════════════════════════════════════
+const scrambleWords = [
+  { word:'SCIENCE',   clue:'Study of the natural world' },
+  { word:'HISTORY',   clue:'Study of the past' },
+  { word:'GEOGRAPHY', clue:'Study of Earth and places' },
+  { word:'BIOLOGY',   clue:'Study of living things' },
+  { word:'PHYSICS',   clue:'Study of matter and energy' },
+  { word:'CHEMISTRY', clue:'Study of substances' },
+  { word:'ENGLISH',   clue:'Language arts subject' },
+  { word:'ALGEBRA',   clue:'Math with variables' },
+  { word:'GEOMETRY',  clue:'Math of shapes' },
+  { word:'LIBRARY',   clue:'Room full of books' },
+  { word:'TEACHER',   clue:'Person who educates' },
+  { word:'STUDENT',   clue:'Person who learns' },
+  { word:'HOMEWORK',  clue:'School work done at home' },
+  { word:'PENCIL',    clue:'Writing instrument' },
+  { word:'DIPLOMA',   clue:'Certificate of completion' },
+  { word:'SEMESTER',  clue:'Half of a school year' },
+  { word:'NOTEBOOK',  clue:'For writing notes' },
+  { word:'CALENDAR',  clue:'Tracks days and dates' },
+  { word:'COMPUTER',  clue:'Electronic device' },
+  { word:'SCHEDULE',  clue:'Plan of activities' },
+];
+
+function scramble() {
+  let score = 0, idx = 0;
+  const pool = [...scrambleWords].sort(() => Math.random()-.5);
+  let hintUsed = false;
+
+  function scrambleWord(w) {
+    let s;
+    do { s = w.split('').sort(() => Math.random()-.5).join(''); } while(s === w);
+    return s;
+  }
+
+  function renderRound() {
+    if (idx >= pool.length) {
+      showResult({ icon:'🔀', title:'All Done!', score:`${score} pts`, msg:`You unscrambled ${pool.length} words!`, replayFn: scramble });
+      return;
+    }
+    const { word, clue } = pool[idx];
+    const sc = scrambleWord(word);
+    hintUsed = false;
+    document.getElementById('game-stats').innerHTML = `<div class="stat-pill">Score <span>${score}</span></div><div class="stat-pill">Word <span>${idx+1}</span>/${pool.length}</div>`;
+    document.getElementById('game-body').innerHTML = `<div id="scramble-display">
+      <div class="scrambled-word">${sc}</div>
+      <div class="scramble-clue">💡 ${clue}</div>
+      <div class="math-input-row" style="max-width:360px;margin:0 auto 8px">
+        <input id="sc-input" class="game-input" type="text" placeholder="Type the word…" autocomplete="off" style="text-transform:uppercase">
+        <button class="btn btn-primary" onclick="scSubmit()">Go</button>
+      </div>
+      <div class="feedback" id="sc-feedback"></div>
+      <div style="display:flex;gap:10px;justify-content:center;margin-top:16px">
+        <button class="btn btn-outline btn-sm" onclick="scHint()">🔍 Hint (−3 pts)</button>
+        <button class="btn btn-outline btn-sm" onclick="scSkip()">⏭ Skip</button>
+      </div>
+      <div id="sc-hint-display" class="scramble-hint" style="min-height:24px;margin-top:8px"></div>
+    </div>`;
+    const inp = document.getElementById('sc-input');
+    if (inp) { inp.focus(); inp.addEventListener('keydown', e => { if(e.key==='Enter') scSubmit(); }); }
+  }
+
+  window.scSubmit = function() {
+    const inp = document.getElementById('sc-input');
+    if (!inp) return;
+    const val = inp.value.trim().toUpperCase();
+    const fb = document.getElementById('sc-feedback');
+    if (val === pool[idx].word) {
+      const pts = hintUsed ? 7 : 10;
+      score += pts;
+      if (fb) { fb.textContent = `✓ Correct! +${pts} pts`; fb.className = 'feedback correct'; }
+      idx++;
+      setTimeout(renderRound, 700);
+    } else {
+      if (fb) { fb.textContent = '✗ Try again!'; fb.className = 'feedback wrong'; }
+    }
+  };
+
+  window.scHint = function() {
+    if (hintUsed) return;
+    hintUsed = true;
+    const w = pool[idx].word;
+    const hint = w[0] + '_'.repeat(w.length-2) + w[w.length-1];
+    const h = document.getElementById('sc-hint-display');
+    if (h) h.textContent = `First & last: ${hint}`;
+  };
+
+  window.scSkip = function() {
+    const fb = document.getElementById('sc-feedback');
+    if (fb) { fb.textContent = `Skipped — it was: ${pool[idx].word}`; fb.className = 'feedback wrong'; }
+    idx++;
+    setTimeout(renderRound, 900);
+  };
+
+  setGameUI('Word Scramble', '', '');
+  renderRound();
+}
+
+// ════════════════════════════════════════════════════════
+//  5. TYPING RACE
+// ════════════════════════════════════════════════════════
+const passages = [
+  "The quick brown fox jumps over the lazy dog near the river bank.",
+  "Learning new things every day makes you smarter and more creative.",
+  "Science helps us understand the world around us and beyond the stars.",
+  "Reading books is one of the best ways to expand your vocabulary.",
+  "Mathematics teaches us to think logically and solve complex problems.",
+  "History shows us where we came from and helps us plan for the future.",
+  "Technology is changing the world faster than ever before in history.",
+  "Hard work and dedication are the keys to achieving your goals in life.",
+  "The human brain can store an incredible amount of information and memories.",
+  "Teamwork and cooperation are essential skills for success in any field.",
+];
+
+let typingInterval;
+function clearTypingTimers() { clearInterval(typingInterval); }
+
+function typing() {
+  const text = passages[Math.floor(Math.random()*passages.length)];
+  let startTime = null, finished = false, wpm = 0;
+
+  setGameUI('Typing Race',
+    `<div class="stat-pill">WPM <span id="t-wpm">0</span></div><div class="stat-pill">Accuracy <span id="t-acc">100</span>%</div>`,
+    `<div id="typing-display">
+      <div class="typing-passage" id="t-passage">${text}</div>
+      <textarea id="t-area" class="typing-textarea" placeholder="Start typing here…"></textarea>
+      <div style="color:var(--muted);font-size:.85rem;margin-top:8px;text-align:center">Start typing to begin the timer</div>
+    </div>`
+  );
+
+  const area = document.getElementById('t-area');
+  if (!area) return;
+  area.focus();
+
+  area.addEventListener('input', () => {
+    if (finished) return;
+    const typed = area.value;
+    if (!startTime && typed.length > 0) startTime = Date.now();
+
+    let correct = 0, errors = 0;
+    let html = '';
+    for (let i = 0; i < text.length; i++) {
+      if (i < typed.length) {
+        if (typed[i] === text[i]) { html += `<span class="correct-char">${text[i]}</span>`; correct++; }
+        else { html += `<span class="wrong-char">${text[i]}</span>`; errors++; }
+      } else if (i === typed.length) {
+        html += `<span class="current-char">${text[i]}</span>`;
+      } else {
+        html += text[i];
+      }
+    }
+    document.getElementById('t-passage').innerHTML = html;
+
+    const elapsed = startTime ? (Date.now()-startTime)/60000 : 0;
+    const words = typed.trim().split(/\s+/).filter(Boolean).length;
+    wpm = elapsed > 0 ? Math.round(words/elapsed) : 0;
+    const acc = typed.length > 0 ? Math.round(correct/(correct+errors)*100) : 100;
+    document.getElementById('t-wpm').textContent = wpm;
+    document.getElementById('t-acc').textContent = acc;
+
+    if (typed === text) {
+      finished = true;
+      const msg = wpm >= 60 ? 'Speed demon! 🚀' : wpm >= 40 ? 'Great typing!' : wpm >= 25 ? 'Good job!' : 'Keep practicing!';
+      showResult({ icon:'⌨️', title:'Finished!', score:`${wpm} WPM`, msg:`Accuracy: ${acc}% — ${msg}`, replayFn: typing });
+    }
+  });
+
+  area.addEventListener('paste', e => e.preventDefault());
+}
+
+// ════════════════════════════════════════════════════════
+//  6. SCHOOL TRIVIA
+// ════════════════════════════════════════════════════════
+const triviaBank = [
+  { q:"What is the chemical symbol for Gold?", opts:["Au","Ag","Fe","Cu"], ans:0, subj:"Chemistry" },
+  { q:"How many sides does a hexagon have?", opts:["5","6","7","8"], ans:1, subj:"Math" },
+  { q:"What planet is closest to the Sun?", opts:["Venus","Mars","Earth","Mercury"], ans:3, subj:"Science" },
+  { q:"Who wrote 'Romeo and Juliet'?", opts:["Dickens","Shakespeare","Chaucer","Austen"], ans:1, subj:"English" },
+  { q:"What is 15% of 200?", opts:["25","30","35","40"], ans:1, subj:"Math" },
+  { q:"What is the capital of France?", opts:["Berlin","Rome","Paris","Madrid"], ans:2, subj:"Geography" },
+  { q:"How many bones are in the human body?", opts:["186","206","226","246"], ans:1, subj:"Biology" },
+  { q:"What is the powerhouse of the cell?", opts:["Nucleus","Ribosome","Mitochondria","Vacuole"], ans:2, subj:"Biology" },
+  { q:"Which ocean is the largest?", opts:["Atlantic","Indian","Arctic","Pacific"], ans:3, subj:"Geography" },
+  { q:"In what year did World War II end?", opts:["1943","1944","1945","1946"], ans:2, subj:"History" },
+  { q:"What is the square root of 144?", opts:["10","11","12","13"], ans:2, subj:"Math" },
+  { q:"What gas do plants absorb from the air?", opts:["Oxygen","Nitrogen","Carbon Dioxide","Hydrogen"], ans:2, subj:"Science" },
+  { q:"What is the largest continent?", opts:["Africa","Asia","Americas","Europe"], ans:1, subj:"Geography" },
+  { q:"What is H2O?", opts:["Salt","Sugar","Water","Acid"], ans:2, subj:"Chemistry" },
+  { q:"Who painted the Mona Lisa?", opts:["Van Gogh","Picasso","Da Vinci","Rembrandt"], ans:2, subj:"History" },
+  { q:"How many degrees in a right angle?", opts:["45","60","90","180"], ans:2, subj:"Math" },
+  { q:"What is the hardest natural substance?", opts:["Quartz","Iron","Diamond","Gold"], ans:2, subj:"Science" },
+  { q:"What language is spoken in Brazil?", opts:["Spanish","French","English","Portuguese"], ans:3, subj:"Geography" },
+  { q:"How many players in a soccer team?", opts:["9","10","11","12"], ans:2, subj:"General" },
+  { q:"What is the speed of light (approx)?", opts:["150,000 km/s","300,000 km/s","500,000 km/s","1,000,000 km/s"], ans:1, subj:"Physics" },
+];
+
+function trivia() {
+  const questions = [...triviaBank].sort(()=>Math.random()-.5).slice(0,12);
+  let qi = 0, score = 0, answered = false;
+
+  function render() {
+    if (qi >= questions.length) {
+      const pct = Math.round(score/questions.length*100);
+      showResult({ icon: pct>=80?'🏆':pct>=60?'🎓':'📚', title:'Quiz Done!', score:`${score}/${questions.length}`, msg:`${pct}% correct — ${pct>=80?'Outstanding!':pct>=60?'Well done!':'Keep studying!'}`, replayFn: trivia });
+      return;
+    }
+    const q = questions[qi];
+    answered = false;
+    document.getElementById('game-stats').innerHTML = `<div class="stat-pill">Score <span>${score}</span></div><div class="stat-pill">Q <span>${qi+1}</span>/${questions.length}</div>`;
+    document.getElementById('game-body').innerHTML = `<div id="trivia-display">
+      <div class="trivia-subject">${q.subj}</div>
+      <div class="trivia-q">${q.q}</div>
+      <div class="trivia-options">
+        ${q.opts.map((o,i)=>`<button class="trivia-opt" id="topt-${i}" onclick="triviaAnswer(${i})">${String.fromCharCode(65+i)}. ${o}</button>`).join('')}
+      </div>
+      <div id="t-explanation" style="min-height:20px;margin-top:12px"></div>
+    </div>`;
+  }
+
+  window.triviaAnswer = function(i) {
+    if (answered) return;
+    answered = true;
+    const q = questions[qi];
+    document.querySelectorAll('.trivia-opt').forEach(b => b.disabled = true);
+    const btn = document.getElementById(`topt-${i}`);
+    const correct = document.getElementById(`topt-${q.ans}`);
+    if (i === q.ans) {
+      score++; if(btn) btn.className = 'trivia-opt correct';
+    } else {
+      if(btn) btn.className = 'trivia-opt wrong';
+      if(correct) correct.className = 'trivia-opt correct';
+    }
+    qi++;
+    setTimeout(render, 1200);
+  };
+
+  setGameUI('School Trivia', '', '');
+  render();
+}
+
+// ════════════════════════════════════════════════════════
+//  7. NUMBER GUESSER
+// ════════════════════════════════════════════════════════
+function number() {
+  const secret = Math.floor(Math.random()*100)+1;
+  let attempts = 0, maxAttempts = 7;
+  let guesses = [];
+
+  function render(hintText='', hintClass='') {
+    document.getElementById('game-stats').innerHTML = `<div class="stat-pill">Tries <span>${attempts}</span>/${maxAttempts}</div>`;
+    document.getElementById('game-body').innerHTML = `<div id="number-display">
+      <div style="color:var(--muted);margin-bottom:8px">I'm thinking of a number between</div>
+      <div class="number-range">1 — 100</div>
+      <div class="number-hint ${hintClass}">${hintText}</div>
+      <div class="guesses-left">${maxAttempts - attempts} guesses remaining</div>
+      <div class="math-input-row" style="max-width:280px;margin:0 auto">
+        <input id="n-input" class="game-input" type="number" min="1" max="100" placeholder="1-100" ${attempts>=maxAttempts?'disabled':''}>
+        <button class="btn btn-primary" onclick="numGuess()" ${attempts>=maxAttempts?'disabled':''}>Guess</button>
+      </div>
+      <div class="guess-history">${guesses.map(g=>`<div class="guess-bubble">${g}</div>`).join('')}</div>
+    </div>`;
+    const inp = document.getElementById('n-input');
+    if (inp) { inp.focus(); inp.addEventListener('keydown', e=>{ if(e.key==='Enter') numGuess(); }); }
+  }
+
+  window.numGuess = function() {
+    const inp = document.getElementById('n-input');
+    if (!inp) return;
+    const g = parseInt(inp.value, 10);
+    if (isNaN(g) || g < 1 || g > 100) return;
+    attempts++;
+    guesses.push(g);
+    if (g === secret) {
+      const pts = Math.max(100 - (attempts-1)*12, 10);
+      showResult({ icon:'🎯', title:'Correct!', score:`${pts} pts`, msg:`You got it in ${attempts} ${attempts===1?'try':'tries'}!`, replayFn: number });
+      return;
+    }
+    if (attempts >= maxAttempts) {
+      showResult({ icon:'😬', title:'Out of Tries!', score:'0 pts', msg:`The number was ${secret}!`, replayFn: number });
+      return;
+    }
+    const diff = Math.abs(g - secret);
+    let hint, cls;
+    if (diff <= 3)      { hint = g < secret ? '🔥 Very hot! Go higher!' : '🔥 Very hot! Go lower!'; cls='hot'; }
+    else if (diff <= 10) { hint = g < secret ? '🌡 Warm! Try higher.' : '🌡 Warm! Try lower.'; cls='warm'; }
+    else                { hint = g < secret ? '🧊 Cold! Much higher.' : '🧊 Cold! Much lower.'; cls='cold'; }
+    render(hint, cls);
+  };
+
+  render('Make your first guess!', '');
+}
+
+// ════════════════════════════════════════════════════════
+//  8. SNAKE
+// ════════════════════════════════════════════════════════
+let snakeLoop = null;
+function stopSnake() { if(snakeLoop) { clearInterval(snakeLoop); snakeLoop = null; } }
+
+function snake() {
+  const COLS = 20, ROWS = 20, CELL = 20;
+  let dir = {x:1,y:0}, nextDir = {x:1,y:0};
+  let body = [{x:10,y:10}];
+  let food = randomFood();
+  let score = 0, speed = 150;
+
+  function randomFood() {
+    let f;
+    do { f = {x:Math.floor(Math.random()*COLS), y:Math.floor(Math.random()*ROWS)}; }
+    while(body.some(s=>s.x===f.x&&s.y===f.y));
+    return f;
+  }
+
+  setGameUI('Snake',
+    `<div class="stat-pill">Score <span id="sn-score">0</span></div><div class="stat-pill">Length <span id="sn-len">1</span></div>`,
+    `<div id="snake-display">
+      <canvas id="snake-canvas" width="${COLS*CELL}" height="${ROWS*CELL}"></canvas>
+      <div class="snake-controls">
+        <div class="snake-row"><button class="snake-btn" onclick="snakeDir(0,-1)">▲</button></div>
+        <div class="snake-row">
+          <button class="snake-btn" onclick="snakeDir(-1,0)">◀</button>
+          <button class="snake-btn" onclick="snakeDir(0,0)" style="opacity:.3;cursor:default"> </button>
+          <button class="snake-btn" onclick="snakeDir(1,0)">▶</button>
+        </div>
+        <div class="snake-row"><button class="snake-btn" onclick="snakeDir(0,1)">▼</button></div>
+      </div>
+      <div class="snake-speed">Use arrow keys or buttons above</div>
+    </div>`
+  );
+
+  const canvas = document.getElementById('snake-canvas');
+  const ctx = canvas.getContext('2d');
+
+  function draw() {
+    ctx.fillStyle = '#16213e';
+    ctx.fillRect(0,0,canvas.width,canvas.height);
+    ctx.strokeStyle = '#1e2a4a';
+    ctx.lineWidth = .5;
+    for(let x=0;x<COLS;x++) for(let y=0;y<ROWS;y++){
+      ctx.strokeRect(x*CELL,y*CELL,CELL,CELL);
+    }
+    body.forEach((seg,i) => {
+      const t = i/body.length;
+      ctx.fillStyle = i===0 ? '#6c63ff' : `hsl(${250-t*40},70%,${55-t*15}%)`;
+      const pad = i===0 ? 1 : 2;
+      const r = 5;
+      const x=seg.x*CELL+pad, y=seg.y*CELL+pad, w=CELL-pad*2, h=CELL-pad*2;
+      ctx.beginPath();
+      ctx.roundRect(x,y,w,h,r);
+      ctx.fill();
+    });
+    ctx.fillStyle = '#ff6584';
+    const fx=food.x*CELL+3, fy=food.y*CELL+3, fw=CELL-6, fh=CELL-6;
+    ctx.beginPath(); ctx.arc(fx+fw/2,fy+fh/2,fw/2,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle='#fff'; ctx.font='bold 11px sans-serif'; ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillText('●',food.x*CELL+CELL/2,food.y*CELL+CELL/2);
+  }
+
+  function tick() {
+    dir = {...nextDir};
+    const head = {x:body[0].x+dir.x, y:body[0].y+dir.y};
+    if (head.x<0||head.x>=COLS||head.y<0||head.y>=ROWS||body.some(s=>s.x===head.x&&s.y===head.y)) {
+      stopSnake();
+      showResult({ icon:'🐍', title:'Game Over!', score:`${score} pts`, msg:`Length: ${body.length}. Snake hit a wall!`, replayFn: snake });
+      return;
+    }
+    body.unshift(head);
+    if (head.x===food.x&&head.y===food.y) {
+      score += 10; food = randomFood();
+      if (body.length % 5 === 0) speed = Math.max(60, speed-10);
+      stopSnake(); snakeLoop = setInterval(tick, speed);
+      const sc=document.getElementById('sn-score'); if(sc) sc.textContent=score;
+      const ln=document.getElementById('sn-len'); if(ln) ln.textContent=body.length;
+    } else {
+      body.pop();
+    }
+    draw();
+  }
+
+  window.snakeDir = function(x,y) {
+    if(x!==0&&dir.x!==0) return;
+    if(y!==0&&dir.y!==0) return;
+    nextDir={x,y};
+  };
+
+  document.onkeydown = e => {
+    if(['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(e.key)) e.preventDefault();
+    if(e.key==='ArrowLeft') snakeDir(-1,0);
+    else if(e.key==='ArrowRight') snakeDir(1,0);
+    else if(e.key==='ArrowUp') snakeDir(0,-1);
+    else if(e.key==='ArrowDown') snakeDir(0,1);
+  };
+
+  stopSnake();
+  draw();
+  snakeLoop = setInterval(tick, speed);
+}
+</script>
+</body>
+</html>
