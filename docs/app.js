@@ -61,10 +61,20 @@ const BOAT_TYPES = {
   dinghy:       { factor: 0.95, angleShift: -2 },
 };
 
+// Reference sail-area-to-LWL^2 ratio (ft^2/ft^2) used to judge whether a
+// given boat is over/under-canvassed compared to a "typical" example of its type.
+const REF_SA_RATIO = { cruiser: 0.55, cruiserracer: 0.65, sportboat: 0.85, dinghy: 1.30 };
+
+// Reference draft-to-LWL ratio used to judge pointing ability.
+const REF_DRAFT_RATIO = 0.15;
+
+const BOAT_PROFILE_KEY = 'vmgRouterBoatProfile';
+
 /* ===================== Math helpers ===================== */
 
 const toRad = d => d * Math.PI / 180;
 const toDeg = r => r * 180 / Math.PI;
+const clamp = (x, min, max) => Math.max(min, Math.min(max, x));
 
 function haversineNm(a, b) {
   const R = 3440.065; // nautical miles
@@ -116,28 +126,58 @@ function lerp1D(table, xKey, yKey, x) {
   return table[table.length - 1][yKey];
 }
 
-function boatSpeed(twa, tws, boatType) {
+// Derives speed/angle adjustments from the optional "My Boat" profile
+// (waterline length, draft, sail areas) on top of the selected boat type.
+function boatModifiers(boatType, profile) {
   const cfg = BOAT_TYPES[boatType] || BOAT_TYPES.cruiserracer;
-  const effTwa = Math.max(0, Math.min(180, twa + cfg.angleShift));
-  const base = lerp1D(POLAR_BASE, 'twa', 'bs', effTwa);
-  const wf = lerp1D(WIND_FACTOR, 'tws', 'f', tws);
-  return Math.max(0, base * wf * cfg.factor);
+  const mods = { factor: cfg.factor, angleShift: cfg.angleShift, hullSpeedCap: Infinity, downwindBoost: 1 };
+  if (!profile || !profile.lwl) return mods;
+
+  mods.hullSpeedCap = 1.34 * Math.sqrt(profile.lwl);
+
+  const upwindSail = (profile.main || 0) + (profile.jib || 0);
+  if (upwindSail > 0) {
+    const saRatio = upwindSail / (profile.lwl * profile.lwl);
+    const refRatio = REF_SA_RATIO[boatType] || REF_SA_RATIO.cruiserracer;
+    mods.factor *= clamp(saRatio / refRatio, 0.75, 1.25);
+  }
+
+  if (profile.draft) {
+    const draftRatio = profile.draft / profile.lwl;
+    mods.angleShift += clamp((REF_DRAFT_RATIO - draftRatio) * 60, -4, 4);
+  }
+
+  if (profile.spin > 0 && upwindSail > 0) {
+    mods.downwindBoost = clamp(1 + (profile.spin / upwindSail) * 0.25, 1, 1.35);
+  }
+
+  return mods;
 }
 
-function bestUpwindVMG(tws, boatType) {
+function boatSpeed(twa, tws, boatType, profile) {
+  const mods = boatModifiers(boatType, profile);
+  const effTwa = clamp(twa + mods.angleShift, 0, 180);
+  const base = lerp1D(POLAR_BASE, 'twa', 'bs', effTwa);
+  const wf = lerp1D(WIND_FACTOR, 'tws', 'f', tws);
+  let speed = base * wf * mods.factor;
+  if (twa > 100) speed *= mods.downwindBoost;
+  return clamp(speed, 0, mods.hullSpeedCap);
+}
+
+function bestUpwindVMG(tws, boatType, profile) {
   let best = { vmg: -Infinity, twa: 42, speed: 0 };
   for (let twa = 28; twa <= 65; twa += 0.5) {
-    const sp = boatSpeed(twa, tws, boatType);
+    const sp = boatSpeed(twa, tws, boatType, profile);
     const vmg = sp * Math.cos(toRad(twa));
     if (vmg > best.vmg) best = { vmg, twa, speed: sp };
   }
   return best;
 }
 
-function bestDownwindVMG(tws, boatType) {
+function bestDownwindVMG(tws, boatType, profile) {
   let best = { vmg: -Infinity, twa: 150, speed: 0 };
   for (let twa = 120; twa <= 180; twa += 0.5) {
-    const sp = boatSpeed(twa, tws, boatType);
+    const sp = boatSpeed(twa, tws, boatType, profile);
     const vmg = sp * Math.cos(toRad(180 - twa));
     if (vmg > best.vmg) best = { vmg, twa, speed: sp };
   }
@@ -146,13 +186,13 @@ function bestDownwindVMG(tws, boatType) {
 
 /* ===================== Leg calculation ===================== */
 
-function calcLeg(from, to, windDirFrom, windSpeedKt, currentDirTo, currentSpeedKt, boatType) {
+function calcLeg(from, to, windDirFrom, windSpeedKt, currentDirTo, currentSpeedKt, boatType, profile) {
   const bearing = initialBearing(from, to);
   const distNm = haversineNm(from, to);
   const twa = angleDiff(bearing, windDirFrom);
 
-  const up = bestUpwindVMG(windSpeedKt, boatType);
-  const down = bestDownwindVMG(windSpeedKt, boatType);
+  const up = bestUpwindVMG(windSpeedKt, boatType, profile);
+  const down = bestDownwindVMG(windSpeedKt, boatType, profile);
 
   let mode, boatSpd, vmgComponent, sailTwa;
   if (twa < up.twa) {
@@ -167,7 +207,7 @@ function calcLeg(from, to, windDirFrom, windSpeedKt, currentDirTo, currentSpeedK
     sailTwa = down.twa;
   } else {
     mode = 'reach';
-    boatSpd = boatSpeed(twa, windSpeedKt, boatType);
+    boatSpd = boatSpeed(twa, windSpeedKt, boatType, profile);
     vmgComponent = boatSpd;
     sailTwa = twa;
   }
@@ -319,6 +359,58 @@ function getActiveConditions() {
       wave: conditions.current.wave,
     },
   };
+}
+
+/* ===================== Boat profile (length, draft, sails) ===================== */
+
+function getBoatProfile() {
+  return {
+    lwl: parseFloat(document.getElementById('boatLwl').value) || null,
+    draft: parseFloat(document.getElementById('boatDraft').value) || null,
+    main: parseFloat(document.getElementById('sailMain').value) || 0,
+    jib: parseFloat(document.getElementById('sailJib').value) || 0,
+    spin: parseFloat(document.getElementById('sailSpin').value) || 0,
+  };
+}
+
+function saveBoatProfile() {
+  const data = {
+    boatType: document.getElementById('boatType').value,
+    lwl: document.getElementById('boatLwl').value,
+    draft: document.getElementById('boatDraft').value,
+    main: document.getElementById('sailMain').value,
+    jib: document.getElementById('sailJib').value,
+    spin: document.getElementById('sailSpin').value,
+  };
+  try { localStorage.setItem(BOAT_PROFILE_KEY, JSON.stringify(data)); } catch (e) { /* storage unavailable */ }
+}
+
+function loadBoatProfile() {
+  let data;
+  try { data = JSON.parse(localStorage.getItem(BOAT_PROFILE_KEY)); } catch (e) { return; }
+  if (!data) return;
+  if (data.boatType) document.getElementById('boatType').value = data.boatType;
+  document.getElementById('boatLwl').value = data.lwl || '';
+  document.getElementById('boatDraft').value = data.draft || '';
+  document.getElementById('sailMain').value = data.main || '';
+  document.getElementById('sailJib').value = data.jib || '';
+  document.getElementById('sailSpin').value = data.spin || '';
+}
+
+function updateBoatStats() {
+  const profile = getBoatProfile();
+  const statsEl = document.getElementById('boatStats');
+  if (!profile.lwl) {
+    statsEl.textContent = '';
+    return;
+  }
+  const boatType = document.getElementById('boatType').value;
+  const mods = boatModifiers(boatType, profile);
+  const parts = [`Hull speed cap: ${mods.hullSpeedCap.toFixed(1)} kt`];
+  if (profile.main || profile.jib) parts.push(`Sail-area factor: ${mods.factor.toFixed(2)}×`);
+  if (profile.draft) parts.push(`Pointing adjustment: ${mods.angleShift >= 0 ? '+' : ''}${mods.angleShift.toFixed(1)}°`);
+  if (profile.spin) parts.push(`Downwind boost: ${mods.downwindBoost.toFixed(2)}×`);
+  statsEl.textContent = parts.join(' · ');
 }
 
 /* ===================== Seamarks ===================== */
@@ -483,6 +575,7 @@ function recalcRoute() {
 
   const c = getActiveConditions();
   const boatType = document.getElementById('boatType').value;
+  const profile = getBoatProfile();
   const points = [userLoc, ...course.map(m => ({ lat: m.lat, lon: m.lon }))];
 
   let rows = '';
@@ -490,7 +583,7 @@ function recalcRoute() {
   let anyInfinite = false;
 
   for (let i = 0; i < course.length; i++) {
-    const leg = calcLeg(points[i], points[i + 1], c.wind.dir, c.wind.speed, c.current.dir, c.current.speed, boatType);
+    const leg = calcLeg(points[i], points[i + 1], c.wind.dir, c.wind.speed, c.current.dir, c.current.speed, boatType, profile);
     if (isFinite(leg.timeHours)) totalH += leg.timeHours; else anyInfinite = true;
 
     const modeLabel = { beat: 'Beat ⇆', run: 'Run ⇆', reach: 'Reach →' }[leg.mode];
@@ -572,7 +665,11 @@ document.getElementById('goBtn').addEventListener('click', () => {
   if (isFinite(lat) && isFinite(lon)) setLocation(lat, lon, 'Loading marks…');
 });
 
-document.getElementById('boatType').addEventListener('change', recalcRoute);
+document.getElementById('boatType').addEventListener('change', () => { saveBoatProfile(); updateBoatStats(); recalcRoute(); });
+['boatLwl', 'boatDraft', 'sailMain', 'sailJib', 'sailSpin'].forEach(id => {
+  document.getElementById(id).addEventListener('input', () => { saveBoatProfile(); updateBoatStats(); recalcRoute(); });
+});
+
 document.getElementById('useOverride').addEventListener('change', () => { renderConditions(); recalcRoute(); });
 ['windSpeedOverride', 'windDirOverride', 'curSpeedOverride', 'curDirOverride'].forEach(id => {
   document.getElementById(id).addEventListener('input', () => {
@@ -589,4 +686,6 @@ document.getElementById('clearBtn').addEventListener('click', () => {
 
 /* ===================== Boot ===================== */
 
+loadBoatProfile();
+updateBoatStats();
 initMap();

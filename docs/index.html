@@ -65,14 +65,27 @@
     </section>
 
     <section class="card">
-      <h2>3. Boat polar</h2>
+      <h2>3. Your boat</h2>
       <select id="boatType" class="select">
         <option value="cruiser">Cruiser (e.g. 32-38ft)</option>
         <option value="cruiserracer" selected>Cruiser-Racer (e.g. 36.7)</option>
         <option value="sportboat">Sportboat (e.g. J/70)</option>
         <option value="dinghy">Dinghy (e.g. Laser/470)</option>
       </select>
-      <p class="hint">Estimated polar speeds — adjust to match your boat's feel.</p>
+      <div class="row">
+        <label>Waterline length (ft) <input id="boatLwl" type="number" min="0" step="0.1" placeholder="e.g. 30" /></label>
+        <label>Draft (ft) <input id="boatDraft" type="number" min="0" step="0.1" placeholder="e.g. 5.5" /></label>
+      </div>
+      <div class="row">
+        <label>Mainsail (ft²) <input id="sailMain" type="number" min="0" step="1" placeholder="e.g. 280" /></label>
+        <label>Headsail (ft²) <input id="sailJib" type="number" min="0" step="1" placeholder="e.g. 250" /></label>
+      </div>
+      <div class="row">
+        <label>Spinnaker (ft²) <input id="sailSpin" type="number" min="0" step="1" placeholder="0 if none" /></label>
+        <label class="hint" style="align-self:flex-end;padding-bottom:6px;">Optional — fine-tunes the polar &amp; hull-speed cap.</label>
+      </div>
+      <p class="hint" id="boatStats"></p>
+      <p class="hint">Saved automatically in this browser — no account needed. Leave blank to use the generic polar for your boat type.</p>
     </section>
 
     <section class="card">
