@@ -4,20 +4,23 @@ This file is the standing brief for every Claude Code session in this repo.
 Read it first, then check `PROGRESS.md` to see exactly where things stand.
 
 **The goal**: follow `30_DAY_AI_AGENT_PLAN.md` to go from zero to 5 paying
-clients selling AI voice/chat agents to local service businesses (HVAC,
-plumbers, dentists, etc.), using n8n + OpenAI + Retell AI + Airtable +
-Lovable + Twilio + Stripe + Calendly.
+clients selling AI agents to local service businesses (HVAC, plumbers,
+dentists, etc.), using Relevance AI + Firecrawl + n8n + OpenAI + Voiceflow +
+Agentive + Airtable + Gmail/Google + Stripe + Calendly.
 
 ## Reference docs
 
-- **`30_DAY_AI_AGENT_PLAN.md`** — the full day-by-day playbook: every system
-  prompt, n8n config, JSON body, and outreach script, ready to copy-paste.
+- **`30_DAY_AI_AGENT_PLAN.md`** — the full day-by-day playbook for the 4
+  builds (Sales Co-Pilot, Lead Qualification Agent, Voiceflow website/phone
+  agent, WhatsApp agent): every system prompt, n8n config, JSON body, and
+  outreach script, ready to copy-paste.
 - **`PROGRESS.md`** — live tracker: current day, accounts created, client
   pipeline, notes. Always read/update this.
 - **`index.js` / `.env.example`** — an earlier reference build (Twilio +
-  Express + Google Calendar for "Zenith HVAC & Plumbing"). Not the primary
-  playbook anymore, but useful as a code reference if a client build needs a
-  custom backend instead of pure n8n.
+  Express + Google Calendar for "Zenith HVAC & Plumbing"), from before the
+  pivot to the Relevance AI/Voiceflow/Agentive stack above. Not the primary
+  playbook anymore, but useful as a code reference if a client build ever
+  needs custom backend logic beyond what those platforms support.
 
 ## Quick commands — just say these, no need to explain context
 
@@ -66,16 +69,19 @@ Lovable + Twilio + Stripe + Calendly.
 ## Client build workflow (Days 17/27 — "build an agent for X")
 
 1. **Discovery**: business name, niche, city, services offered, hours,
-   owner contact info, any special rules (e.g. closed weekends).
-2. **Customize the chatbot**: update the Day 4 system prompt and `save_lead`
-   HTTP body with the client's business name/services.
-3. **Customize the voice agent**: duplicate the Retell demo agent, update
-   the system prompt (Day 5 template), note that a new Twilio number is
-   needed (~$1.15/mo — flag for approval), point the n8n booking workflow at
-   the client's Google Calendar.
-4. **Test**: 20 test calls/chats — track any bad responses and fix the
-   prompts.
-5. **Deliver**: draft the Day 18 delivery message + Loom script, and the
-   call-forwarding instructions for the client's phone type.
+   pricing ranges, FAQs, owner contact info, any special rules (e.g. closed
+   weekends).
+2. **Customize the Voiceflow website/phone agent**: update the greeting
+   Speak block with the client's business name, replace the test knowledge
+   base documents with the client's real service list/FAQ/pricing, and tag
+   the "Leave Contact Info" Airtable API call with the client's business
+   name. Publish and hand over the new embed code.
+3. **Customize the WhatsApp agent (Agentive)**: update the system prompt
+   (Day 6 template) with the client's business name/services, and tag the
+   `save_lead` tool body with the client's business name. If they want their
+   own WhatsApp Business number, walk them through the Agentive integration.
+4. **Test**: 20 test chats/calls/WhatsApp messages — track any bad responses
+   and fix the prompts/knowledge base.
+5. **Deliver**: draft the Day 18 delivery message + Loom script.
 6. **Follow up**: draft the referral ask (Day 22) once they've had the agent
    a few days.
