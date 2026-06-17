@@ -10,6 +10,8 @@ Agentive + Airtable + Gmail/Google + Stripe + Calendly.
 
 ## Reference docs
 
+- **`PERSONAL_CONTEXT.md`** — who Kai is, how he wants me to work, and what
+  he hates in outputs. Read this too, every session.
 - **`30_DAY_AI_AGENT_PLAN.md`** — the full day-by-day playbook for the 4
   builds (Sales Co-Pilot, Lead Qualification Agent, Voiceflow website/phone
   agent, WhatsApp agent): every system prompt, n8n config, JSON body, and
