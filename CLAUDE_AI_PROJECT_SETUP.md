@@ -9,9 +9,10 @@ every chat inside that Project has access to them.
 
 1. Go to claude.ai → **Projects** → **Create project**.
 2. Name it something like "Zenith AI Agency".
-3. Click **Add content** / project knowledge, and upload these three files
+3. Click **Add content** / project knowledge, and upload these four files
    from this repo:
    - `CLAUDE.md`
+   - `PERSONAL_CONTEXT.md`
    - `PROGRESS.md`
    - `30_DAY_AI_AGENT_PLAN.md`
 4. Open **Project instructions** (sometimes called custom instructions) and
@@ -64,6 +65,9 @@ Claude.ai Projects can't write back to this GitHub repo, so
 
 ## Re-syncing after changes here
 
-Whenever `30_DAY_AI_AGENT_PLAN.md`, `CLAUDE.md`, or `PROGRESS.md` change in
-this repo, re-download and re-upload the updated file(s) to the Claude.ai
-Project so both stay aligned.
+Whenever any of the four files change in this repo, re-download and
+re-upload the updated file(s) to the Claude.ai Project so both stay aligned:
+- `CLAUDE.md`
+- `PERSONAL_CONTEXT.md`
+- `PROGRESS.md`
+- `30_DAY_AI_AGENT_PLAN.md`
