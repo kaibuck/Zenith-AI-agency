@@ -14,7 +14,7 @@
 - [x] Relevance AI (free)
 - [x] n8n (free 14-day cloud trial)
 - [x] Voiceflow (free)
-- [x] Agentive (free)
+- [x] Agentive — ⚠️ PLATFORM APPEARS DOWN (site shows "not hosted"). Skip Build 4 for now. Will find alternative (likely n8n WhatsApp integration) before Day 6.
 - [x] OpenAI (added $20 credit — ⚠️ confirm API key is copied and saved)
 - [x] Firecrawl (free plan — ⚠️ confirm API key is copied and saved)
 - [x] Airtable (⚠️ still need to create Leads + Pipeline bases and save API key + Base ID)
@@ -30,7 +30,7 @@
 - [ ] Day 3 — Airtable Leads + Pipeline bases set up
 - [ ] Day 4 — Build 2: Lead Qualification Agent (n8n) active and tested
 - [ ] Day 5 — Build 3: Voiceflow website + phone agent live
-- [ ] Day 6 — Build 4: WhatsApp agent (Agentive) live, saving to Airtable
+- [ ] Day 6 — Build 4: WhatsApp agent — Agentive is down, need alternative platform before this day
 - [ ] Day 7 — Demo videos uploaded, pricing set
 
 ## Week 2 — Prospecting
