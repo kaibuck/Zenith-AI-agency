@@ -6,26 +6,26 @@
 
 ## Current Status
 
-- **Current day**: 1
+- **Current day**: 2
 - **Phase**: Week 1 — Foundations + Build All Four Demos
 
 ## Accounts / Signups
 
-- [ ] Relevance AI (free)
-- [ ] n8n (free 14-day cloud trial)
-- [ ] Voiceflow (free)
-- [ ] Agentive (free)
-- [ ] OpenAI (added $20 credit, API key saved)
-- [ ] Firecrawl (free plan, API key saved)
-- [ ] Airtable (Leads + Pipeline bases created, API key + Base ID saved)
-- [ ] Google account (Gmail + Sheets)
+- [x] Relevance AI (free)
+- [x] n8n (free 14-day cloud trial)
+- [x] Voiceflow (free)
+- [x] Agentive (free)
+- [x] OpenAI (added $20 credit — ⚠️ confirm API key is copied and saved)
+- [x] Firecrawl (free plan — ⚠️ confirm API key is copied and saved)
+- [x] Airtable (⚠️ still need to create Leads + Pipeline bases and save API key + Base ID)
+- [x] Google account (Gmail + Sheets)
 - [ ] Hostinger (only needed after n8n trial ends — $5/mo, confirm before)
-- [ ] Calendly (demo call link — referenced in outreach messages)
-- [ ] Stripe / payment link (referenced for client setup fees)
+- [x] Calendly (demo call link — referenced in outreach messages)
+- [x] Stripe / payment link (referenced for client setup fees)
 
 ## Day-by-Day Checklist (Week 1)
 
-- [ ] Day 1 — Accounts created, keys saved to password manager
+- [x] Day 1 — Accounts created, keys saved to password manager
 - [ ] Day 2 — Build 1: Sales Co-Pilot (Relevance AI) live, share link copied
 - [ ] Day 3 — Airtable Leads + Pipeline bases set up
 - [ ] Day 4 — Build 2: Lead Qualification Agent (n8n) active and tested
