@@ -5,6 +5,7 @@ const { google } = require('googleapis');
 const twilio = require('twilio');
 const { execSync } = require('child_process');
 const { v4: uuidv4 } = require('uuid');
+const { createLeadAgent, startAutopilot } = require('./leadAgent');
 
 const app = express();
 app.use(bodyParser.json());
@@ -305,6 +306,13 @@ setInterval(async () => {
   await checkReminders();
   await checkOwnerNotifications();
 }, 15 * 60 * 1000);
+
+// ============================================================================
+//  OUTBOUND LEAD AGENT (find leads → AI call → book meeting)
+// ============================================================================
+
+app.use(createLeadAgent({ notify: (msg) => sendSMS(process.env.OWNER_PHONE_NUMBER, msg) }));
+startAutopilot();
 
 // ============================================================================
 //  HEALTH CHECK
