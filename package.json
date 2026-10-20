@@ -4,7 +4,8 @@
   "description": "Backend for Zenith HVAC & Plumbing AI Assistant",
   "main": "index.js",
   "scripts": {
-    "start": "node index.js"
+    "start": "node index.js",
+    "build:site": "node scripts/build-standalone.js"
   },
   "dependencies": {
     "body-parser": "^1.20.2",

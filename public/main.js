@@ -142,7 +142,7 @@
     status.className = 'form-status';
     status.textContent = 'Sending…';
     try {
-      const res = await fetch('/api/demo-request', {
+      const res = await fetch(form.dataset.endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(Object.fromEntries(new FormData(form))),
