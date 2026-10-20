@@ -65,6 +65,8 @@
     const progress = story.querySelector('[data-progress]');
     const fmt = (sec) => `${Math.floor(sec / 60)}:${String(Math.floor(sec % 60)).padStart(2, '0')}`;
     let lastActive = -1;
+    // Pause the looping phone animations while the story is offscreen
+    new IntersectionObserver(([entry]) => story.classList.toggle('paused', !entry.isIntersecting)).observe(story);
 
     updateStory = () => {
       const rect = story.getBoundingClientRect();
