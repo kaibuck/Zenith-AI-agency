@@ -5,8 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Zenith AI — AI Receptionists for Home Service Businesses</title>
   <meta name="description" content="Zenith AI answers every call, books jobs straight into your calendar, and texts confirmations and reminders — built for HVAC, plumbing and home service teams.">
-  <meta name="theme-color" content="#7C3AED">
-  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%237C3AED'/%3E%3Cpath d='M9 10h14L9 22h14' stroke='white' stroke-width='3' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+  <meta name="theme-color" content="#000000">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='black'/%3E%3Cpath d='M9 10h14L9 22h14' stroke='white' stroke-width='3' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
@@ -27,10 +27,13 @@
       <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></symbol>
       <symbol id="i-x" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></symbol>
       <symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"/></symbol>
+      <symbol id="i-mic" viewBox="0 0 24 24"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M19 10v1a7 7 0 0 1-14 0v-1M12 18v4"/></symbol>
+      <symbol id="i-speaker" viewBox="0 0 24 24"><path d="M11 5 6 9H2v6h4l5 4zM15.5 8.5a5 5 0 0 1 0 7M19 5a10 10 0 0 1 0 14"/></symbol>
       <symbol id="i-plug" viewBox="0 0 24 24"><path d="M12 22v-5M9 8V2M15 8V2M18 8v5a6 6 0 0 1-12 0V8z"/></symbol>
     </defs>
   </svg>
 
+  <div class="scroll-bar" aria-hidden="true"><span data-scroll-bar></span></div>
   <header class="site-header" data-header>
     <nav class="nav container" aria-label="Primary">
       <a class="brand" href="#top" aria-label="Zenith AI home">
@@ -51,66 +54,102 @@
   </header>
 
   <main id="main">
-    <!-- Hero -->
-    <section class="hero" id="top">
-      <div class="container hero-grid">
-        <div class="hero-copy">
-          <p class="eyebrow"><span class="pulse" aria-hidden="true"></span> AI receptionist · live 24/7</p>
-          <h1>Never miss another <span class="grad">service call.</span></h1>
-          <p class="lede">Zenith AI picks up every call, checks your calendar, books the job and texts the customer a confirmation — while your techs stay on the tools.</p>
-          <div class="hero-ctas">
-            <a class="btn btn-primary" href="#demo">Book a free demo <svg class="icon" aria-hidden="true"><use href="#i-arrow"/></svg></a>
-            <a class="btn btn-ghost" href="#how">See how it works</a>
+    <!-- Scroll story: the phone call plays out as you scroll -->
+    <section class="story" id="top" data-story aria-labelledby="story-title">
+      <div class="story-stage">
+        <div class="story-captions" aria-live="off">
+          <div class="cap" data-cap="0">
+            <p class="eyebrow"><span class="pulse" aria-hidden="true"></span> AI receptionist · live 24/7</p>
+            <h1 id="story-title">Never miss another <span class="dim">service call.</span></h1>
+            <p class="lede">Zenith AI picks up every call, books the job and texts the customer — while your techs stay on the tools.</p>
+            <p class="scroll-hint" aria-hidden="true"><span class="mouse"><i></i></span> Scroll to answer the call</p>
           </div>
-          <ul class="hero-points">
-            <li><svg class="icon" aria-hidden="true"><use href="#i-check"/></svg> Live in days, not months</li>
-            <li><svg class="icon" aria-hidden="true"><use href="#i-check"/></svg> Works with your existing number</li>
-            <li><svg class="icon" aria-hidden="true"><use href="#i-check"/></svg> No long-term contract</li>
-          </ul>
+          <div class="cap" data-cap="1">
+            <p class="eyebrow">01 · Answer</p>
+            <h2>Picks up on the first ring.</h2>
+            <p class="lede">9:42 PM on a Sunday? No voicemail, no hold music — a friendly voice that knows your business.</p>
+          </div>
+          <div class="cap" data-cap="2">
+            <p class="eyebrow">02 · Understand</p>
+            <h2>Gets the whole story.</h2>
+            <p class="lede">Name, address and what's wrong — captured in a natural conversation, not a phone tree.</p>
+          </div>
+          <div class="cap" data-cap="3">
+            <p class="eyebrow">03 · Book</p>
+            <h2>Books it straight onto your calendar.</h2>
+            <p class="lede">It checks live availability, offers a real slot and locks it in. No double-bookings.</p>
+          </div>
+          <div class="cap" data-cap="4">
+            <p class="eyebrow">04 · Confirm</p>
+            <h2>Texts the confirmation. Done.</h2>
+            <p class="lede">The customer gets a text, you get a job alert — and a reminder goes out 3 hours before the visit.</p>
+            <a class="btn btn-primary" href="#demo">Book a free demo <svg class="icon" aria-hidden="true"><use href="#i-arrow"/></svg></a>
+          </div>
         </div>
 
-        <figure class="call-demo" aria-labelledby="demo-caption" data-call-demo>
-          <div class="call-head">
-            <div class="call-who">
-              <span class="avatar" aria-hidden="true"><svg class="icon"><use href="#i-phone"/></svg></span>
-              <div>
-                <strong>Incoming call</strong>
-                <span class="muted">(512) 555-0148 · 9:42 PM</span>
+        <figure class="phone live ended" data-phone aria-label="Example call: Zenith AI answers an after-hours call from Dana, collects her address and books an AC repair for Tuesday at 10 AM, then texts a confirmation.">
+          <div class="phone-btn phone-btn-l" aria-hidden="true"></div>
+          <div class="phone-btn phone-btn-r" aria-hidden="true"></div>
+          <div class="screen" aria-hidden="true">
+            <div class="island"></div>
+            <div class="status-bar"><span>9:41</span><span class="sb-icons"><i class="sig"><b></b><b></b><b></b><b></b></i><i class="batt"></i></span></div>
+
+            <div class="notif" data-notif>
+              <span class="notif-app">Z</span>
+              <div><strong>Zenith HVAC &amp; Plumbing</strong><p>Hi Dana, you're booked for Tue 10:00 AM at 418 Oak Ridge Dr. Reply STOP to cancel.</p></div>
+              <span class="notif-time">now</span>
+            </div>
+
+            <div class="call-top">
+              <div class="call-logo"><span class="ring"></span><span class="ring r2"></span><svg viewBox="0 0 32 32"><path d="M9 10h14L9 22h14"/></svg></div>
+              <div class="call-name">Zenith</div>
+              <div class="call-status" data-call-status>Incoming call…</div>
+            </div>
+
+            <ol class="bubbles" data-bubbles>
+              <li class="bubble agent" data-at="0.13">Thanks for calling Zenith HVAC &amp; Plumbing! Who am I speaking with?</li>
+              <li class="bubble caller" data-at="0.22">Hi, it's Dana. My AC stopped blowing cold air 😩</li>
+              <li class="bubble agent" data-at="0.31">So sorry, Dana — let's get that fixed. What's the service address?</li>
+              <li class="bubble caller" data-at="0.40">418 Oak Ridge Drive.</li>
+              <li class="bubble agent" data-at="0.50">Got it. I have tomorrow at 10:00 AM open. Want me to book it?</li>
+              <li class="bubble caller" data-at="0.60">Yes please!</li>
+              <li class="booked" data-at="0.68"><span>✓</span><div><strong>Booked · Tue 10:00 AM</strong><small>AC repair · 418 Oak Ridge Dr</small></div></li>
+              <li class="bubble agent" data-at="0.75">You're all set! I'll text you a confirmation now. Stay cool! 👋</li>
+              <li class="typing" data-typing><i></i><i></i><i></i></li>
+            </ol>
+
+            <div class="call-actions">
+              <div class="act-ring">
+                <span class="act decline"><svg class="icon"><use href="#i-phone"/></svg></span>
+                <span class="act accept"><svg class="icon"><use href="#i-phone"/></svg></span>
+              </div>
+              <div class="act-live">
+                <span class="act small"><svg class="icon"><use href="#i-mic"/></svg></span>
+                <span class="act end"><svg class="icon"><use href="#i-phone"/></svg></span>
+                <span class="act small"><svg class="icon"><use href="#i-speaker"/></svg></span>
               </div>
             </div>
-            <div class="wave" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+            <div class="home-bar"></div>
           </div>
-          <ol class="transcript" aria-live="off">
-            <li class="msg ai">Thanks for calling Zenith HVAC &amp; Plumbing! Who am I speaking with?</li>
-            <li class="msg caller">Hi, this is Dana. My AC stopped blowing cold air.</li>
-            <li class="msg ai">Sorry to hear that, Dana. What's the service address?</li>
-            <li class="msg caller">418 Oak Ridge Drive.</li>
-            <li class="msg ai">I have tomorrow at 10:00 AM open. Should I book it?</li>
-            <li class="msg caller">Yes, please!</li>
-          </ol>
-          <div class="call-result">
-            <div class="result-chip"><svg class="icon" aria-hidden="true"><use href="#i-calendar"/></svg> Booked · Tue 10:00 AM</div>
-            <div class="result-chip"><svg class="icon" aria-hidden="true"><use href="#i-message"/></svg> Confirmation texted</div>
-          </div>
-          <figcaption id="demo-caption" class="sr-only">Example call: the Zenith AI receptionist answers an after-hours call, collects the caller's name and address, and books an AC repair for the next morning.</figcaption>
-          <button class="replay" type="button" data-replay hidden>Replay call</button>
         </figure>
+
+        <div class="story-progress" aria-hidden="true"><span data-progress></span></div>
       </div>
     </section>
 
     <!-- Stats strip -->
     <section class="strip" aria-label="At a glance">
-      <div class="container strip-grid">
-        <div><strong>24/7</strong><span>Every call answered, nights &amp; weekends</span></div>
-        <div><strong>&lt;1 ring</strong><span>No hold music, no voicemail</span></div>
-        <div><strong>1 text</strong><span>Customers cancel or reschedule by SMS</span></div>
-        <div><strong>3 hrs</strong><span>Automatic reminder before every visit</span></div>
+      <div class="container strip-grid reveal-group">
+        <div class="reveal"><strong>24/7</strong><span>Every call answered, nights &amp; weekends</span></div>
+        <div class="reveal"><strong>&lt;1 ring</strong><span>No hold music, no voicemail</span></div>
+        <div class="reveal"><strong>1 text</strong><span>Customers cancel or reschedule by SMS</span></div>
+        <div class="reveal"><strong>3 hrs</strong><span>Automatic reminder before every visit</span></div>
       </div>
     </section>
 
     <!-- Problem -->
-    <section class="section" aria-labelledby="problem-title">
-      <div class="container narrow center">
+    <section class="section reveal-solo" aria-labelledby="problem-title">
+      <div class="container narrow center reveal">
         <p class="eyebrow">The problem</p>
         <h2 id="problem-title">Every unanswered call is a job your competitor books.</h2>
         <p class="lede">When a furnace dies at 10 PM, homeowners don't leave voicemails — they call the next company on the list. Zenith AI makes sure that company is never you.</p>
@@ -118,9 +157,9 @@
     </section>
 
     <!-- How it works -->
-    <section class="section alt" id="how" aria-labelledby="how-title">
+    <section class="section invert" id="how" aria-labelledby="how-title">
       <div class="container">
-        <div class="section-head">
+        <div class="section-head reveal">
           <p class="eyebrow">How it works</p>
           <h2 id="how-title">From ring to booked in under two minutes.</h2>
         </div>
@@ -150,7 +189,7 @@
     <!-- Features bento -->
     <section class="section" id="features" aria-labelledby="features-title">
       <div class="container">
-        <div class="section-head">
+        <div class="section-head reveal">
           <p class="eyebrow">Features</p>
           <h2 id="features-title">Your front desk, fully automated.</h2>
         </div>
@@ -196,16 +235,16 @@
     </section>
 
     <!-- Industries -->
-    <section class="section alt" id="industries" aria-labelledby="ind-title">
+    <section class="section" id="industries" aria-labelledby="ind-title">
       <div class="container">
-        <div class="section-head">
+        <div class="section-head reveal">
           <p class="eyebrow">Built for the trades</p>
           <h2 id="ind-title">Made for businesses that live on the phone.</h2>
         </div>
-        <ul class="pills">
-          <li>HVAC</li><li>Plumbing</li><li>Electrical</li><li>Roofing</li><li>Garage doors</li><li>Pest control</li><li>Landscaping</li><li>Appliance repair</li>
+        <ul class="pills reveal-group">
+          <li class="reveal">HVAC</li><li class="reveal">Plumbing</li><li class="reveal">Electrical</li><li class="reveal">Roofing</li><li class="reveal">Garage doors</li><li class="reveal">Pest control</li><li class="reveal">Landscaping</li><li class="reveal">Appliance repair</li>
         </ul>
-        <div class="integrations">
+        <div class="integrations reveal">
           <svg class="icon" aria-hidden="true"><use href="#i-plug"/></svg>
           <p>Connects with the tools you already use — <strong>Google Calendar</strong>, <strong>Twilio</strong> phone &amp; SMS, and your existing business number.</p>
         </div>
@@ -213,26 +252,26 @@
     </section>
 
     <!-- FAQ -->
-    <section class="section" id="faq" aria-labelledby="faq-title">
+    <section class="section invert" id="faq" aria-labelledby="faq-title">
       <div class="container narrow">
-        <div class="section-head center">
+        <div class="section-head center reveal">
           <p class="eyebrow">FAQ</p>
           <h2 id="faq-title">Questions, answered.</h2>
         </div>
-        <div class="faq">
-          <details>
+        <div class="faq reveal-group">
+          <details class="reveal">
             <summary>Will callers know they're talking to AI?</summary>
             <p>The agent sounds natural and friendly, and we're always transparent — it can tell callers it's an automated assistant and transfer to a person whenever you want.</p>
           </details>
-          <details>
+          <details class="reveal">
             <summary>Do I need a new phone number?</summary>
             <p>No. Forward your existing line to Zenith AI full-time, after hours only, or just when you don't pick up.</p>
           </details>
-          <details>
+          <details class="reveal">
             <summary>What happens with emergencies?</summary>
             <p>You set the rules. Urgent calls like gas smells or flooding can be flagged and sent straight to your on-call tech.</p>
           </details>
-          <details>
+          <details class="reveal">
             <summary>How long does setup take?</summary>
             <p>Most businesses are live within a few days. We configure your services, hours and calendar, then test calls with you before go-live.</p>
           </details>
@@ -241,14 +280,14 @@
     </section>
 
     <!-- Demo form -->
-    <section class="section cta" id="demo" aria-labelledby="demo-title">
+    <section class="section cta invert" id="demo" aria-labelledby="demo-title">
       <div class="container cta-grid">
-        <div>
+        <div class="reveal">
           <p class="eyebrow">Get started</p>
           <h2 id="demo-title">Hear it answer your phone.</h2>
           <p class="lede">Book a 15-minute demo. We'll set up a sample agent with your business name so you can call it yourself.</p>
         </div>
-        <form class="form" data-demo-form novalidate>
+        <form class="form reveal" data-demo-form novalidate>
           <div class="field">
             <label for="f-name">Your name</label>
             <input id="f-name" name="name" type="text" autocomplete="name" required maxlength="80">
