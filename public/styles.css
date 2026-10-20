@@ -52,6 +52,7 @@ a { color: inherit; }
 svg { display: block; }
 :focus-visible { outline: 2px solid var(--ring); outline-offset: 3px; border-radius: 6px; }
 
+main { overflow-x: clip; }
 .container { width: min(1160px, 100% - 32px); margin-inline: auto; }
 .narrow { width: min(760px, 100% - 32px); }
 .center { text-align: center; }
@@ -126,7 +127,7 @@ svg { display: block; }
 }
 
 /* ───────── Scroll story ───────── */
-.story { position: relative; background: radial-gradient(45% 50% at 74% 50%, rgb(212 167 44 / .13), transparent 70%), var(--black); }
+.story { position: relative; overflow-x: clip; background: radial-gradient(45% 50% at 74% 50%, rgb(212 167 44 / .13), transparent 70%), var(--black); }
 .story-stage {
   position: relative; min-height: 100svh;
   width: min(1160px, 100% - 32px); margin-inline: auto;
@@ -170,11 +171,58 @@ svg { display: block; }
     inset 0 0 0 5px #0A0806,
     0 40px 90px -20px rgb(212 167 44 / .28),
     0 0 0 1px #000;
-  transform-origin: 50% 60%;
+  transform-origin: 50% 50%;
+  transform-style: preserve-3d;
 }
-.js-story .phone { transform: translateY(calc((1 - var(--intro, 1)) * 40px)) scale(calc(.92 + var(--intro, 1) * .08)); }
-.phone.ringing { animation: buzz 1.4s infinite; }
-@keyframes buzz { 0%, 60%, 100% { translate: 0 0; } 64% { translate: -2px 0; } 68% { translate: 2px 0; } 72% { translate: -2px 0; } 76% { translate: 2px 0; } 80% { translate: 0 0; } }
+
+/* 3D stage: perspective, floating, grid floor and contact shadow */
+.phone-3d { position: relative; perspective: 1400px; isolation: isolate; }
+.phone-3d::before {
+  content: ""; position: absolute; z-index: -2; left: 50%; bottom: -16%; width: 300%; height: 60%;
+  transform: translateX(-50%) rotateX(76deg); transform-origin: 50% 100%;
+  background:
+    linear-gradient(rgb(212 167 44 / .28) 1px, transparent 1px) 0 0 / 44px 44px,
+    linear-gradient(90deg, rgb(212 167 44 / .28) 1px, transparent 1px) 0 0 / 44px 44px;
+  -webkit-mask-image: radial-gradient(closest-side, #000 20%, transparent);
+          mask-image: radial-gradient(closest-side, #000 20%, transparent);
+  pointer-events: none;
+}
+.phone-3d::after {
+  content: ""; position: absolute; z-index: -1; left: 50%; bottom: -5%; width: 80%; height: 7%;
+  translate: -50% 0; border-radius: 50%;
+  background: radial-gradient(closest-side, rgb(0 0 0 / .85), rgb(212 167 44 / .12) 70%, transparent);
+  filter: blur(6px); animation: shadow 6s ease-in-out infinite;
+}
+.js-story .phone {
+  transform: rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg)) rotateZ(var(--rz, 0deg)) scale(var(--sc, 1));
+  transition: transform .35s cubic-bezier(.2, .7, .3, 1);
+  animation: float 6s ease-in-out infinite;
+}
+@keyframes float { 0%, 100% { translate: 0 0; } 50% { translate: 0 -14px; } }
+@keyframes shadow { 0%, 100% { scale: 1; opacity: 1; } 50% { scale: .82; opacity: .7; } }
+.js-story .phone.ringing { animation: float 6s ease-in-out infinite, buzz 1.4s infinite; }
+@keyframes buzz { 0%, 60%, 100% { rotate: 0deg; } 64% { rotate: -1.6deg; } 68% { rotate: 1.6deg; } 72% { rotate: -1.6deg; } 76% { rotate: 1.6deg; } 80% { rotate: 0deg; } }
+
+/* Body thickness: stacked layers behind the front face form the gold edge */
+.phone-depth, .phone-depth i { position: absolute; inset: 0; border-radius: inherit; transform-style: preserve-3d; pointer-events: none; }
+.phone-depth i { background: linear-gradient(145deg, #C9A445, #5C4A1F 45%, #2A2110 70%, #8A6F2E); }
+.phone-depth i:nth-child(1) { transform: translateZ(-1.5px); }
+.phone-depth i:nth-child(2) { transform: translateZ(-3px); }
+.phone-depth i:nth-child(3) { transform: translateZ(-4.5px); }
+.phone-depth i:nth-child(4) { transform: translateZ(-6px); }
+.phone-depth i:nth-child(5) { transform: translateZ(-7.5px); }
+.phone-depth i:nth-child(6) { transform: translateZ(-9px); }
+.phone-depth i:nth-child(7) { transform: translateZ(-10.5px); }
+.phone-depth i:nth-child(8) { transform: translateZ(-12px); }
+.phone-depth i:nth-child(9) { transform: translateZ(-13.5px); }
+.phone-depth i:nth-child(10) { transform: translateZ(-15px); background: linear-gradient(145deg, #3A2F18, #120F0A 60%, #2A2110); }
+.screen { transform: translateZ(.6px); }
+.glare {
+  position: absolute; inset: -20%; z-index: 8; pointer-events: none;
+  background: linear-gradient(115deg, transparent 35%, rgb(255 240 200 / .13) 46%, rgb(255 240 200 / .04) 54%, transparent 62%);
+  transform: translateX(var(--glare, 0%));
+  transition: transform .35s cubic-bezier(.2, .7, .3, 1);
+}
 .phone-btn { position: absolute; width: 3px; background: #8A6F2E; border-radius: 2px; }
 .phone-btn-l { left: -3px; top: 22%; height: 9%; box-shadow: 0 calc(var(--w) * .2) 0 #8A6F2E; }
 .phone-btn-r { right: -3px; top: 28%; height: 14%; }
@@ -312,9 +360,11 @@ svg { display: block; }
 .bento { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
 .card {
   background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 28px;
-  transition: border-color .3s var(--ease), transform .3s var(--ease), box-shadow .3s var(--ease);
 }
-.card:hover { border-color: rgb(212 167 44 / .5); transform: translateY(-2px); box-shadow: 0 18px 40px -24px rgb(212 167 44 / .45); }
+.card:hover { border-color: rgb(212 167 44 / .5); box-shadow: 0 18px 40px -24px rgb(212 167 44 / .45); }
+/* 3D tilt toward the cursor (vars set in main.js); uses `rotate` so it doesn't fight the reveal transform */
+.bento { perspective: 1200px; }
+.card { rotate: var(--tilt-x, 0) var(--tilt-y, 1) 0 var(--tilt, 0deg); translate: 0 var(--lift, 0); transition: border-color .3s var(--ease), box-shadow .3s var(--ease), rotate .2s ease-out, translate .3s var(--ease), opacity .8s var(--ease), transform .8s var(--ease), filter .8s var(--ease); }
 .card h3 { margin-top: 20px; }
 .card p { color: var(--muted); margin: 0; }
 .card-wide { grid-column: span 2; }
@@ -370,7 +420,7 @@ svg { display: block; }
 .footer-grid p { margin: 0; font-size: .9rem; }
 
 /* Scroll reveal */
-.js-anim .reveal { opacity: 0; transform: translateY(40px); filter: blur(8px); transition: opacity .8s var(--ease), transform .8s var(--ease), filter .8s var(--ease); }
+.js-anim .reveal { opacity: 0; transform: perspective(900px) translateY(48px) rotateX(16deg); transform-origin: 50% 0; filter: blur(8px); transition: opacity .8s var(--ease), transform .8s var(--ease), filter .8s var(--ease); }
 .js-anim .reveal.in { opacity: 1; transform: none; filter: none; }
 
 /* Responsive */
@@ -389,7 +439,9 @@ svg { display: block; }
   .js-story .cap .eyebrow { margin-bottom: 10px; }
   .js-story .scroll-hint { margin-top: 4px; }
   .js-story .cap .btn { min-height: 44px; padding: 0 18px; font-size: .95rem; margin-top: 4px; }
-  .js-story .phone { --w: min(300px, calc((100svh - 310px) * .47), 76vw); align-self: start; }
+  .js-story .phone { --w: min(300px, calc((100svh - 310px) * .47), 76vw); }
+  .js-story .phone-3d { align-self: start; }
+  .phone-3d::before { width: 220%; }
   .cta-grid { grid-template-columns: 1fr; }
   .steps { grid-template-columns: 1fr; }
   .step, .step + .step { padding: 28px 0; border-left: 0; border-bottom: 1px solid var(--border); }

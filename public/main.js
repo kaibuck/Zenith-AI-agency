@@ -65,6 +65,27 @@
     const progress = story.querySelector('[data-progress]');
     const fmt = (sec) => `${Math.floor(sec / 60)}:${String(Math.floor(sec % 60)).padStart(2, '0')}`;
     let lastActive = -1;
+    const mobile = window.matchMedia('(max-width: 900px)');
+    const mouse = { x: 0, y: 0 };
+    // Keyframes of [rotateX, rotateY, rotateZ] in degrees against story progress
+    const POSE = [[0, 14, -26, -3], [0.06, 8, -12, -1], [0.3, 3, -3, 0], [0.55, 4, 8, 1], [0.8, 2, -7, -1], [1, 6, 14, 2]];
+    const ease = (t) => t * t * (3 - 2 * t);
+    const poseAt = (p) => {
+      let i = 0;
+      while (i < POSE.length - 2 && p > POSE[i + 1][0]) i++;
+      const [p0, ...a] = POSE[i];
+      const [p1, ...b] = POSE[i + 1];
+      const t = ease(Math.min(1, Math.max(0, (p - p0) / (p1 - p0))));
+      return a.map((v, k) => v + (b[k] - v) * t);
+    };
+    if (window.matchMedia('(pointer: fine)').matches) {
+      story.addEventListener('pointermove', (e) => {
+        mouse.x = e.clientX / innerWidth - 0.5;
+        mouse.y = e.clientY / innerHeight - 0.5;
+        requestFrame();
+      });
+      story.addEventListener('pointerleave', () => { mouse.x = 0; mouse.y = 0; requestFrame(); });
+    }
     // Pause the looping phone animations while the story is offscreen
     new IntersectionObserver(([entry]) => story.classList.toggle('paused', !entry.isIntersecting)).observe(story);
 
@@ -78,7 +99,14 @@
       phone.classList.toggle('ringing', !live);
       phone.classList.toggle('live', live);
       phone.classList.toggle('ended', ended);
-      phone.style.setProperty('--intro', Math.min(1, 0.4 + p / ANSWER_AT * 0.6).toFixed(3));
+      // 3D pose: starts angled, turns to face you while answering, then sways as the call goes on
+      const [rx, ry, rz] = poseAt(p);
+      const tilt = mobile.matches ? 0.6 : 1;
+      phone.style.setProperty('--rx', `${((rx + mouse.y * -8) * tilt).toFixed(2)}deg`);
+      phone.style.setProperty('--ry', `${((ry + mouse.x * 12) * tilt).toFixed(2)}deg`);
+      phone.style.setProperty('--rz', `${(rz * tilt).toFixed(2)}deg`);
+      phone.style.setProperty('--sc', (0.9 + Math.min(1, p / ANSWER_AT) * 0.1).toFixed(3));
+      phone.style.setProperty('--glare', `${(-(ry + mouse.x * 12) * 1.6).toFixed(1)}%`);
       status.textContent = !live ? 'Incoming call…'
         : ended ? `Call ended · ${fmt(CALL_SECONDS)}`
         : fmt((p - ANSWER_AT) / (END_AT - ANSWER_AT) * CALL_SECONDS);
@@ -110,6 +138,25 @@
   window.addEventListener('scroll', requestFrame, { passive: true });
   window.addEventListener('resize', requestFrame);
   onFrame();
+
+  // Feature cards tilt toward the cursor in 3D
+  if (!reduceMotion && window.matchMedia('(pointer: fine)').matches) {
+    document.querySelectorAll('.card').forEach((card) => {
+      card.addEventListener('pointermove', (e) => {
+        const r = card.getBoundingClientRect();
+        const x = (e.clientX - r.left) / r.width - 0.5;
+        const y = (e.clientY - r.top) / r.height - 0.5;
+        card.style.setProperty('--tilt-x', (-y).toFixed(3));
+        card.style.setProperty('--tilt-y', x.toFixed(3));
+        card.style.setProperty('--tilt', `${(Math.hypot(x, y) * 14).toFixed(2)}deg`);
+        card.style.setProperty('--lift', '-4px');
+      });
+      card.addEventListener('pointerleave', () => {
+        card.style.setProperty('--tilt', '0deg');
+        card.style.setProperty('--lift', '0px');
+      });
+    });
+  }
 
   // Demo request form
   const form = document.querySelector('[data-demo-form]');
