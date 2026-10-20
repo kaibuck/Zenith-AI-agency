@@ -9,6 +9,7 @@ const { v4: uuidv4 } = require('uuid');
 const app = express();
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
+app.use(express.static(require('path').join(__dirname, 'public')));
 
 const PORT = process.env.PORT || 3000;
 
@@ -310,8 +311,29 @@ setInterval(async () => {
 //  HEALTH CHECK
 // ============================================================================
 
-app.get('/', (req, res) => {
+app.get('/health', (req, res) => {
   res.send('<h1>✅ Zenith HVAC & Plumbing AI Agent is Online</h1>');
+});
+
+// ============================================================================
+//  WEBSITE: Demo request form → SMS to owner
+// ============================================================================
+
+app.post('/api/demo-request', async (req, res) => {
+  const clean = (v, max) => String(v || '').replace(/[\r\n]+/g, ' ').trim().slice(0, max);
+  const name = clean(req.body.name, 80);
+  const company = clean(req.body.company, 120);
+  const phone = clean(req.body.phone, 30);
+  const trade = clean(req.body.trade, 40);
+
+  if (!name || !company || phone.replace(/\D/g, '').length < 10) {
+    return res.status(400).json({ error: 'Name, business name and a valid phone are required.' });
+  }
+
+  console.log('[Website] Demo request from', company);
+  await sendSMS(process.env.OWNER_PHONE_NUMBER,
+    `🚀 New Zenith AI demo request\n${name} — ${company}\nTrade: ${trade || 'n/a'}\nPhone: ${phone}`);
+  res.json({ ok: true });
 });
 
 app.listen(PORT, '0.0.0.0', () => {
